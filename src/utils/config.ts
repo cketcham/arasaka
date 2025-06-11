@@ -71,6 +71,11 @@ export class ConfigManager {
     // Set default port if not specified
     config.app.port = config.app.port || 8080;
     
+    // Initialize server config if not present
+    if (!config.server) {
+      config.server = {};
+    }
+    
     // Set default host to "arasaka" if not specified
     if (!config.server.host) {
       config.server.host = 'arasaka';
@@ -87,12 +92,6 @@ export class ConfigManager {
         config.server.user = 'admin'; // fallback
       }
     }
-    
-    // Set deployment defaults
-    config.deployment = config.deployment || {};
-    config.deployment.rollback = config.deployment.rollback || { enabled: true, keepVersions: 3 };
-    config.deployment.cleanup = config.deployment.cleanup || { enabled: true, keepImages: 3 };
-    config.deployment.verifyDeployment = config.deployment.verifyDeployment !== false; // Default to true
   }
 
   private static getNestedValue(obj: any, path: string): any {

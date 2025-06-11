@@ -48,15 +48,6 @@ server:
   host: "arasaka"  # Defaults to "arasaka", can override with TRUENAS_HOST
   # user: "your-username"  # Optional, used for SSH-based operations (if needed)
   apiKey: "${TRUENAS_API_KEY}"  # Required for TrueNAS API access
-
-deployment:
-  verifyDeployment: true  # Verify app is running after deployment
-  rollback:
-    enabled: true
-    keepVersions: 3
-  cleanup:
-    enabled: true
-    keepImages: 3
 ```
 
 ### Flexible Build Configuration
@@ -147,7 +138,7 @@ The tool performs these steps:
 2. **Build**: Builds the Docker image locally
 3. **Query**: Checks if the app already exists in TrueNAS
 4. **Deploy**: Creates a new app or updates existing app using TrueNAS API
-5. **Verify**: Checks app status and optionally performs health checks
+5. **Verify**: Checks app status and performs basic health checks
 
 ## How It Works
 

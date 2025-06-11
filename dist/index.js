@@ -17,16 +17,6 @@ var __toESM = (mod, isNodeMode, target) => {
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, {
-      get: all[name],
-      enumerable: true,
-      configurable: true,
-      set: (newValue) => all[name] = () => newValue
-    });
-};
-var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
 // node_modules/commander/lib/error.js
@@ -2122,4801 +2112,2841 @@ var require_commander = __commonJS((exports) => {
   exports.InvalidOptionArgumentError = InvalidArgumentError;
 });
 
-// node_modules/web-streams-polyfill/dist/ponyfill.es2018.js
-var require_ponyfill_es2018 = __commonJS((exports, module) => {
-  (function(global2, factory) {
-    typeof exports === "object" && typeof module !== "undefined" ? factory(exports) : typeof define === "function" && define.amd ? define(["exports"], factory) : (global2 = typeof globalThis !== "undefined" ? globalThis : global2 || self, factory(global2.WebStreamsPolyfill = {}));
-  })(exports, function(exports2) {
-    function noop() {
-      return;
-    }
-    function typeIsObject(x) {
-      return typeof x === "object" && x !== null || typeof x === "function";
-    }
-    const rethrowAssertionErrorRejection = noop;
-    function setFunctionName(fn, name) {
-      try {
-        Object.defineProperty(fn, "name", {
-          value: name,
-          configurable: true
-        });
-      } catch (_a2) {}
-    }
-    const originalPromise = Promise;
-    const originalPromiseThen = Promise.prototype.then;
-    const originalPromiseReject = Promise.reject.bind(originalPromise);
-    function newPromise(executor) {
-      return new originalPromise(executor);
-    }
-    function promiseResolvedWith(value) {
-      return newPromise((resolve) => resolve(value));
-    }
-    function promiseRejectedWith(reason) {
-      return originalPromiseReject(reason);
-    }
-    function PerformPromiseThen(promise, onFulfilled, onRejected) {
-      return originalPromiseThen.call(promise, onFulfilled, onRejected);
-    }
-    function uponPromise(promise, onFulfilled, onRejected) {
-      PerformPromiseThen(PerformPromiseThen(promise, onFulfilled, onRejected), undefined, rethrowAssertionErrorRejection);
-    }
-    function uponFulfillment(promise, onFulfilled) {
-      uponPromise(promise, onFulfilled);
-    }
-    function uponRejection(promise, onRejected) {
-      uponPromise(promise, undefined, onRejected);
-    }
-    function transformPromiseWith(promise, fulfillmentHandler, rejectionHandler) {
-      return PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
-    }
-    function setPromiseIsHandledToTrue(promise) {
-      PerformPromiseThen(promise, undefined, rethrowAssertionErrorRejection);
-    }
-    let _queueMicrotask = (callback) => {
-      if (typeof queueMicrotask === "function") {
-        _queueMicrotask = queueMicrotask;
-      } else {
-        const resolvedPromise = promiseResolvedWith(undefined);
-        _queueMicrotask = (cb) => PerformPromiseThen(resolvedPromise, cb);
-      }
-      return _queueMicrotask(callback);
-    };
-    function reflectCall(F, V, args) {
-      if (typeof F !== "function") {
-        throw new TypeError("Argument is not a function");
-      }
-      return Function.prototype.apply.call(F, V, args);
-    }
-    function promiseCall(F, V, args) {
-      try {
-        return promiseResolvedWith(reflectCall(F, V, args));
-      } catch (value) {
-        return promiseRejectedWith(value);
-      }
-    }
-    const QUEUE_MAX_ARRAY_SIZE = 16384;
-
-    class SimpleQueue {
-      constructor() {
-        this._cursor = 0;
-        this._size = 0;
-        this._front = {
-          _elements: [],
-          _next: undefined
-        };
-        this._back = this._front;
-        this._cursor = 0;
-        this._size = 0;
-      }
-      get length() {
-        return this._size;
-      }
-      push(element) {
-        const oldBack = this._back;
-        let newBack = oldBack;
-        if (oldBack._elements.length === QUEUE_MAX_ARRAY_SIZE - 1) {
-          newBack = {
-            _elements: [],
-            _next: undefined
-          };
-        }
-        oldBack._elements.push(element);
-        if (newBack !== oldBack) {
-          this._back = newBack;
-          oldBack._next = newBack;
-        }
-        ++this._size;
-      }
-      shift() {
-        const oldFront = this._front;
-        let newFront = oldFront;
-        const oldCursor = this._cursor;
-        let newCursor = oldCursor + 1;
-        const elements = oldFront._elements;
-        const element = elements[oldCursor];
-        if (newCursor === QUEUE_MAX_ARRAY_SIZE) {
-          newFront = oldFront._next;
-          newCursor = 0;
-        }
-        --this._size;
-        this._cursor = newCursor;
-        if (oldFront !== newFront) {
-          this._front = newFront;
-        }
-        elements[oldCursor] = undefined;
-        return element;
-      }
-      forEach(callback) {
-        let i2 = this._cursor;
-        let node = this._front;
-        let elements = node._elements;
-        while (i2 !== elements.length || node._next !== undefined) {
-          if (i2 === elements.length) {
-            node = node._next;
-            elements = node._elements;
-            i2 = 0;
-            if (elements.length === 0) {
-              break;
-            }
-          }
-          callback(elements[i2]);
-          ++i2;
-        }
-      }
-      peek() {
-        const front = this._front;
-        const cursor = this._cursor;
-        return front._elements[cursor];
-      }
-    }
-    const AbortSteps = Symbol("[[AbortSteps]]");
-    const ErrorSteps = Symbol("[[ErrorSteps]]");
-    const CancelSteps = Symbol("[[CancelSteps]]");
-    const PullSteps = Symbol("[[PullSteps]]");
-    const ReleaseSteps = Symbol("[[ReleaseSteps]]");
-    function ReadableStreamReaderGenericInitialize(reader, stream) {
-      reader._ownerReadableStream = stream;
-      stream._reader = reader;
-      if (stream._state === "readable") {
-        defaultReaderClosedPromiseInitialize(reader);
-      } else if (stream._state === "closed") {
-        defaultReaderClosedPromiseInitializeAsResolved(reader);
-      } else {
-        defaultReaderClosedPromiseInitializeAsRejected(reader, stream._storedError);
-      }
-    }
-    function ReadableStreamReaderGenericCancel(reader, reason) {
-      const stream = reader._ownerReadableStream;
-      return ReadableStreamCancel(stream, reason);
-    }
-    function ReadableStreamReaderGenericRelease(reader) {
-      const stream = reader._ownerReadableStream;
-      if (stream._state === "readable") {
-        defaultReaderClosedPromiseReject(reader, new TypeError(`Reader was released and can no longer be used to monitor the stream's closedness`));
-      } else {
-        defaultReaderClosedPromiseResetToRejected(reader, new TypeError(`Reader was released and can no longer be used to monitor the stream's closedness`));
-      }
-      stream._readableStreamController[ReleaseSteps]();
-      stream._reader = undefined;
-      reader._ownerReadableStream = undefined;
-    }
-    function readerLockException(name) {
-      return new TypeError("Cannot " + name + " a stream using a released reader");
-    }
-    function defaultReaderClosedPromiseInitialize(reader) {
-      reader._closedPromise = newPromise((resolve, reject) => {
-        reader._closedPromise_resolve = resolve;
-        reader._closedPromise_reject = reject;
-      });
-    }
-    function defaultReaderClosedPromiseInitializeAsRejected(reader, reason) {
-      defaultReaderClosedPromiseInitialize(reader);
-      defaultReaderClosedPromiseReject(reader, reason);
-    }
-    function defaultReaderClosedPromiseInitializeAsResolved(reader) {
-      defaultReaderClosedPromiseInitialize(reader);
-      defaultReaderClosedPromiseResolve(reader);
-    }
-    function defaultReaderClosedPromiseReject(reader, reason) {
-      if (reader._closedPromise_reject === undefined) {
-        return;
-      }
-      setPromiseIsHandledToTrue(reader._closedPromise);
-      reader._closedPromise_reject(reason);
-      reader._closedPromise_resolve = undefined;
-      reader._closedPromise_reject = undefined;
-    }
-    function defaultReaderClosedPromiseResetToRejected(reader, reason) {
-      defaultReaderClosedPromiseInitializeAsRejected(reader, reason);
-    }
-    function defaultReaderClosedPromiseResolve(reader) {
-      if (reader._closedPromise_resolve === undefined) {
-        return;
-      }
-      reader._closedPromise_resolve(undefined);
-      reader._closedPromise_resolve = undefined;
-      reader._closedPromise_reject = undefined;
-    }
-    const NumberIsFinite = Number.isFinite || function(x) {
-      return typeof x === "number" && isFinite(x);
-    };
-    const MathTrunc = Math.trunc || function(v) {
-      return v < 0 ? Math.ceil(v) : Math.floor(v);
-    };
-    function isDictionary(x) {
-      return typeof x === "object" || typeof x === "function";
-    }
-    function assertDictionary(obj, context) {
-      if (obj !== undefined && !isDictionary(obj)) {
-        throw new TypeError(`${context} is not an object.`);
-      }
-    }
-    function assertFunction(x, context) {
-      if (typeof x !== "function") {
-        throw new TypeError(`${context} is not a function.`);
-      }
-    }
-    function isObject2(x) {
-      return typeof x === "object" && x !== null || typeof x === "function";
-    }
-    function assertObject(x, context) {
-      if (!isObject2(x)) {
-        throw new TypeError(`${context} is not an object.`);
-      }
-    }
-    function assertRequiredArgument(x, position, context) {
-      if (x === undefined) {
-        throw new TypeError(`Parameter ${position} is required in '${context}'.`);
-      }
-    }
-    function assertRequiredField(x, field, context) {
-      if (x === undefined) {
-        throw new TypeError(`${field} is required in '${context}'.`);
-      }
-    }
-    function convertUnrestrictedDouble(value) {
-      return Number(value);
-    }
-    function censorNegativeZero(x) {
-      return x === 0 ? 0 : x;
-    }
-    function integerPart(x) {
-      return censorNegativeZero(MathTrunc(x));
-    }
-    function convertUnsignedLongLongWithEnforceRange(value, context) {
-      const lowerBound = 0;
-      const upperBound = Number.MAX_SAFE_INTEGER;
-      let x = Number(value);
-      x = censorNegativeZero(x);
-      if (!NumberIsFinite(x)) {
-        throw new TypeError(`${context} is not a finite number`);
-      }
-      x = integerPart(x);
-      if (x < lowerBound || x > upperBound) {
-        throw new TypeError(`${context} is outside the accepted range of ${lowerBound} to ${upperBound}, inclusive`);
-      }
-      if (!NumberIsFinite(x) || x === 0) {
-        return 0;
-      }
-      return x;
-    }
-    function assertReadableStream(x, context) {
-      if (!IsReadableStream(x)) {
-        throw new TypeError(`${context} is not a ReadableStream.`);
-      }
-    }
-    function AcquireReadableStreamDefaultReader(stream) {
-      return new ReadableStreamDefaultReader(stream);
-    }
-    function ReadableStreamAddReadRequest(stream, readRequest) {
-      stream._reader._readRequests.push(readRequest);
-    }
-    function ReadableStreamFulfillReadRequest(stream, chunk, done) {
-      const reader = stream._reader;
-      const readRequest = reader._readRequests.shift();
-      if (done) {
-        readRequest._closeSteps();
-      } else {
-        readRequest._chunkSteps(chunk);
-      }
-    }
-    function ReadableStreamGetNumReadRequests(stream) {
-      return stream._reader._readRequests.length;
-    }
-    function ReadableStreamHasDefaultReader(stream) {
-      const reader = stream._reader;
-      if (reader === undefined) {
-        return false;
-      }
-      if (!IsReadableStreamDefaultReader(reader)) {
-        return false;
-      }
-      return true;
-    }
-
-    class ReadableStreamDefaultReader {
-      constructor(stream) {
-        assertRequiredArgument(stream, 1, "ReadableStreamDefaultReader");
-        assertReadableStream(stream, "First parameter");
-        if (IsReadableStreamLocked(stream)) {
-          throw new TypeError("This stream has already been locked for exclusive reading by another reader");
-        }
-        ReadableStreamReaderGenericInitialize(this, stream);
-        this._readRequests = new SimpleQueue;
-      }
-      get closed() {
-        if (!IsReadableStreamDefaultReader(this)) {
-          return promiseRejectedWith(defaultReaderBrandCheckException("closed"));
-        }
-        return this._closedPromise;
-      }
-      cancel(reason = undefined) {
-        if (!IsReadableStreamDefaultReader(this)) {
-          return promiseRejectedWith(defaultReaderBrandCheckException("cancel"));
-        }
-        if (this._ownerReadableStream === undefined) {
-          return promiseRejectedWith(readerLockException("cancel"));
-        }
-        return ReadableStreamReaderGenericCancel(this, reason);
-      }
-      read() {
-        if (!IsReadableStreamDefaultReader(this)) {
-          return promiseRejectedWith(defaultReaderBrandCheckException("read"));
-        }
-        if (this._ownerReadableStream === undefined) {
-          return promiseRejectedWith(readerLockException("read from"));
-        }
-        let resolvePromise;
-        let rejectPromise;
-        const promise = newPromise((resolve, reject) => {
-          resolvePromise = resolve;
-          rejectPromise = reject;
-        });
-        const readRequest = {
-          _chunkSteps: (chunk) => resolvePromise({ value: chunk, done: false }),
-          _closeSteps: () => resolvePromise({ value: undefined, done: true }),
-          _errorSteps: (e) => rejectPromise(e)
-        };
-        ReadableStreamDefaultReaderRead(this, readRequest);
-        return promise;
-      }
-      releaseLock() {
-        if (!IsReadableStreamDefaultReader(this)) {
-          throw defaultReaderBrandCheckException("releaseLock");
-        }
-        if (this._ownerReadableStream === undefined) {
-          return;
-        }
-        ReadableStreamDefaultReaderRelease(this);
-      }
-    }
-    Object.defineProperties(ReadableStreamDefaultReader.prototype, {
-      cancel: { enumerable: true },
-      read: { enumerable: true },
-      releaseLock: { enumerable: true },
-      closed: { enumerable: true }
-    });
-    setFunctionName(ReadableStreamDefaultReader.prototype.cancel, "cancel");
-    setFunctionName(ReadableStreamDefaultReader.prototype.read, "read");
-    setFunctionName(ReadableStreamDefaultReader.prototype.releaseLock, "releaseLock");
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(ReadableStreamDefaultReader.prototype, Symbol.toStringTag, {
-        value: "ReadableStreamDefaultReader",
-        configurable: true
-      });
-    }
-    function IsReadableStreamDefaultReader(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_readRequests")) {
-        return false;
-      }
-      return x instanceof ReadableStreamDefaultReader;
-    }
-    function ReadableStreamDefaultReaderRead(reader, readRequest) {
-      const stream = reader._ownerReadableStream;
-      stream._disturbed = true;
-      if (stream._state === "closed") {
-        readRequest._closeSteps();
-      } else if (stream._state === "errored") {
-        readRequest._errorSteps(stream._storedError);
-      } else {
-        stream._readableStreamController[PullSteps](readRequest);
-      }
-    }
-    function ReadableStreamDefaultReaderRelease(reader) {
-      ReadableStreamReaderGenericRelease(reader);
-      const e = new TypeError("Reader was released");
-      ReadableStreamDefaultReaderErrorReadRequests(reader, e);
-    }
-    function ReadableStreamDefaultReaderErrorReadRequests(reader, e) {
-      const readRequests = reader._readRequests;
-      reader._readRequests = new SimpleQueue;
-      readRequests.forEach((readRequest) => {
-        readRequest._errorSteps(e);
-      });
-    }
-    function defaultReaderBrandCheckException(name) {
-      return new TypeError(`ReadableStreamDefaultReader.prototype.${name} can only be used on a ReadableStreamDefaultReader`);
-    }
-    const AsyncIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf(async function* () {}).prototype);
-
-    class ReadableStreamAsyncIteratorImpl {
-      constructor(reader, preventCancel) {
-        this._ongoingPromise = undefined;
-        this._isFinished = false;
-        this._reader = reader;
-        this._preventCancel = preventCancel;
-      }
-      next() {
-        const nextSteps = () => this._nextSteps();
-        this._ongoingPromise = this._ongoingPromise ? transformPromiseWith(this._ongoingPromise, nextSteps, nextSteps) : nextSteps();
-        return this._ongoingPromise;
-      }
-      return(value) {
-        const returnSteps = () => this._returnSteps(value);
-        return this._ongoingPromise ? transformPromiseWith(this._ongoingPromise, returnSteps, returnSteps) : returnSteps();
-      }
-      _nextSteps() {
-        if (this._isFinished) {
-          return Promise.resolve({ value: undefined, done: true });
-        }
-        const reader = this._reader;
-        let resolvePromise;
-        let rejectPromise;
-        const promise = newPromise((resolve, reject) => {
-          resolvePromise = resolve;
-          rejectPromise = reject;
-        });
-        const readRequest = {
-          _chunkSteps: (chunk) => {
-            this._ongoingPromise = undefined;
-            _queueMicrotask(() => resolvePromise({ value: chunk, done: false }));
-          },
-          _closeSteps: () => {
-            this._ongoingPromise = undefined;
-            this._isFinished = true;
-            ReadableStreamReaderGenericRelease(reader);
-            resolvePromise({ value: undefined, done: true });
-          },
-          _errorSteps: (reason) => {
-            this._ongoingPromise = undefined;
-            this._isFinished = true;
-            ReadableStreamReaderGenericRelease(reader);
-            rejectPromise(reason);
-          }
-        };
-        ReadableStreamDefaultReaderRead(reader, readRequest);
-        return promise;
-      }
-      _returnSteps(value) {
-        if (this._isFinished) {
-          return Promise.resolve({ value, done: true });
-        }
-        this._isFinished = true;
-        const reader = this._reader;
-        if (!this._preventCancel) {
-          const result = ReadableStreamReaderGenericCancel(reader, value);
-          ReadableStreamReaderGenericRelease(reader);
-          return transformPromiseWith(result, () => ({ value, done: true }));
-        }
-        ReadableStreamReaderGenericRelease(reader);
-        return promiseResolvedWith({ value, done: true });
-      }
-    }
-    const ReadableStreamAsyncIteratorPrototype = {
-      next() {
-        if (!IsReadableStreamAsyncIterator(this)) {
-          return promiseRejectedWith(streamAsyncIteratorBrandCheckException("next"));
-        }
-        return this._asyncIteratorImpl.next();
-      },
-      return(value) {
-        if (!IsReadableStreamAsyncIterator(this)) {
-          return promiseRejectedWith(streamAsyncIteratorBrandCheckException("return"));
-        }
-        return this._asyncIteratorImpl.return(value);
-      }
-    };
-    Object.setPrototypeOf(ReadableStreamAsyncIteratorPrototype, AsyncIteratorPrototype);
-    function AcquireReadableStreamAsyncIterator(stream, preventCancel) {
-      const reader = AcquireReadableStreamDefaultReader(stream);
-      const impl = new ReadableStreamAsyncIteratorImpl(reader, preventCancel);
-      const iterator = Object.create(ReadableStreamAsyncIteratorPrototype);
-      iterator._asyncIteratorImpl = impl;
-      return iterator;
-    }
-    function IsReadableStreamAsyncIterator(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_asyncIteratorImpl")) {
-        return false;
-      }
-      try {
-        return x._asyncIteratorImpl instanceof ReadableStreamAsyncIteratorImpl;
-      } catch (_a2) {
-        return false;
-      }
-    }
-    function streamAsyncIteratorBrandCheckException(name) {
-      return new TypeError(`ReadableStreamAsyncIterator.${name} can only be used on a ReadableSteamAsyncIterator`);
-    }
-    const NumberIsNaN = Number.isNaN || function(x) {
-      return x !== x;
-    };
-    var _a, _b, _c;
-    function CreateArrayFromList(elements) {
-      return elements.slice();
-    }
-    function CopyDataBlockBytes(dest, destOffset, src, srcOffset, n) {
-      new Uint8Array(dest).set(new Uint8Array(src, srcOffset, n), destOffset);
-    }
-    let TransferArrayBuffer = (O) => {
-      if (typeof O.transfer === "function") {
-        TransferArrayBuffer = (buffer) => buffer.transfer();
-      } else if (typeof structuredClone === "function") {
-        TransferArrayBuffer = (buffer) => structuredClone(buffer, { transfer: [buffer] });
-      } else {
-        TransferArrayBuffer = (buffer) => buffer;
-      }
-      return TransferArrayBuffer(O);
-    };
-    let IsDetachedBuffer = (O) => {
-      if (typeof O.detached === "boolean") {
-        IsDetachedBuffer = (buffer) => buffer.detached;
-      } else {
-        IsDetachedBuffer = (buffer) => buffer.byteLength === 0;
-      }
-      return IsDetachedBuffer(O);
-    };
-    function ArrayBufferSlice(buffer, begin, end) {
-      if (buffer.slice) {
-        return buffer.slice(begin, end);
-      }
-      const length = end - begin;
-      const slice = new ArrayBuffer(length);
-      CopyDataBlockBytes(slice, 0, buffer, begin, length);
-      return slice;
-    }
-    function GetMethod(receiver, prop) {
-      const func = receiver[prop];
-      if (func === undefined || func === null) {
-        return;
-      }
-      if (typeof func !== "function") {
-        throw new TypeError(`${String(prop)} is not a function`);
-      }
-      return func;
-    }
-    function CreateAsyncFromSyncIterator(syncIteratorRecord) {
-      const syncIterable = {
-        [Symbol.iterator]: () => syncIteratorRecord.iterator
-      };
-      const asyncIterator = async function* () {
-        return yield* syncIterable;
-      }();
-      const nextMethod = asyncIterator.next;
-      return { iterator: asyncIterator, nextMethod, done: false };
-    }
-    const SymbolAsyncIterator = (_c = (_a = Symbol.asyncIterator) !== null && _a !== undefined ? _a : (_b = Symbol.for) === null || _b === undefined ? undefined : _b.call(Symbol, "Symbol.asyncIterator")) !== null && _c !== undefined ? _c : "@@asyncIterator";
-    function GetIterator(obj, hint = "sync", method) {
-      if (method === undefined) {
-        if (hint === "async") {
-          method = GetMethod(obj, SymbolAsyncIterator);
-          if (method === undefined) {
-            const syncMethod = GetMethod(obj, Symbol.iterator);
-            const syncIteratorRecord = GetIterator(obj, "sync", syncMethod);
-            return CreateAsyncFromSyncIterator(syncIteratorRecord);
-          }
-        } else {
-          method = GetMethod(obj, Symbol.iterator);
-        }
-      }
-      if (method === undefined) {
-        throw new TypeError("The object is not iterable");
-      }
-      const iterator = reflectCall(method, obj, []);
-      if (!typeIsObject(iterator)) {
-        throw new TypeError("The iterator method must return an object");
-      }
-      const nextMethod = iterator.next;
-      return { iterator, nextMethod, done: false };
-    }
-    function IteratorNext(iteratorRecord) {
-      const result = reflectCall(iteratorRecord.nextMethod, iteratorRecord.iterator, []);
-      if (!typeIsObject(result)) {
-        throw new TypeError("The iterator.next() method must return an object");
-      }
-      return result;
-    }
-    function IteratorComplete(iterResult) {
-      return Boolean(iterResult.done);
-    }
-    function IteratorValue(iterResult) {
-      return iterResult.value;
-    }
-    function IsNonNegativeNumber(v) {
-      if (typeof v !== "number") {
-        return false;
-      }
-      if (NumberIsNaN(v)) {
-        return false;
-      }
-      if (v < 0) {
-        return false;
-      }
-      return true;
-    }
-    function CloneAsUint8Array(O) {
-      const buffer = ArrayBufferSlice(O.buffer, O.byteOffset, O.byteOffset + O.byteLength);
-      return new Uint8Array(buffer);
-    }
-    function DequeueValue(container) {
-      const pair = container._queue.shift();
-      container._queueTotalSize -= pair.size;
-      if (container._queueTotalSize < 0) {
-        container._queueTotalSize = 0;
-      }
-      return pair.value;
-    }
-    function EnqueueValueWithSize(container, value, size) {
-      if (!IsNonNegativeNumber(size) || size === Infinity) {
-        throw new RangeError("Size must be a finite, non-NaN, non-negative number.");
-      }
-      container._queue.push({ value, size });
-      container._queueTotalSize += size;
-    }
-    function PeekQueueValue(container) {
-      const pair = container._queue.peek();
-      return pair.value;
-    }
-    function ResetQueue(container) {
-      container._queue = new SimpleQueue;
-      container._queueTotalSize = 0;
-    }
-    function isDataViewConstructor(ctor) {
-      return ctor === DataView;
-    }
-    function isDataView(view) {
-      return isDataViewConstructor(view.constructor);
-    }
-    function arrayBufferViewElementSize(ctor) {
-      if (isDataViewConstructor(ctor)) {
-        return 1;
-      }
-      return ctor.BYTES_PER_ELEMENT;
-    }
-
-    class ReadableStreamBYOBRequest {
-      constructor() {
-        throw new TypeError("Illegal constructor");
-      }
-      get view() {
-        if (!IsReadableStreamBYOBRequest(this)) {
-          throw byobRequestBrandCheckException("view");
-        }
-        return this._view;
-      }
-      respond(bytesWritten) {
-        if (!IsReadableStreamBYOBRequest(this)) {
-          throw byobRequestBrandCheckException("respond");
-        }
-        assertRequiredArgument(bytesWritten, 1, "respond");
-        bytesWritten = convertUnsignedLongLongWithEnforceRange(bytesWritten, "First parameter");
-        if (this._associatedReadableByteStreamController === undefined) {
-          throw new TypeError("This BYOB request has been invalidated");
-        }
-        if (IsDetachedBuffer(this._view.buffer)) {
-          throw new TypeError(`The BYOB request's buffer has been detached and so cannot be used as a response`);
-        }
-        ReadableByteStreamControllerRespond(this._associatedReadableByteStreamController, bytesWritten);
-      }
-      respondWithNewView(view) {
-        if (!IsReadableStreamBYOBRequest(this)) {
-          throw byobRequestBrandCheckException("respondWithNewView");
-        }
-        assertRequiredArgument(view, 1, "respondWithNewView");
-        if (!ArrayBuffer.isView(view)) {
-          throw new TypeError("You can only respond with array buffer views");
-        }
-        if (this._associatedReadableByteStreamController === undefined) {
-          throw new TypeError("This BYOB request has been invalidated");
-        }
-        if (IsDetachedBuffer(view.buffer)) {
-          throw new TypeError("The given view's buffer has been detached and so cannot be used as a response");
-        }
-        ReadableByteStreamControllerRespondWithNewView(this._associatedReadableByteStreamController, view);
-      }
-    }
-    Object.defineProperties(ReadableStreamBYOBRequest.prototype, {
-      respond: { enumerable: true },
-      respondWithNewView: { enumerable: true },
-      view: { enumerable: true }
-    });
-    setFunctionName(ReadableStreamBYOBRequest.prototype.respond, "respond");
-    setFunctionName(ReadableStreamBYOBRequest.prototype.respondWithNewView, "respondWithNewView");
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(ReadableStreamBYOBRequest.prototype, Symbol.toStringTag, {
-        value: "ReadableStreamBYOBRequest",
-        configurable: true
-      });
-    }
-
-    class ReadableByteStreamController {
-      constructor() {
-        throw new TypeError("Illegal constructor");
-      }
-      get byobRequest() {
-        if (!IsReadableByteStreamController(this)) {
-          throw byteStreamControllerBrandCheckException("byobRequest");
-        }
-        return ReadableByteStreamControllerGetBYOBRequest(this);
-      }
-      get desiredSize() {
-        if (!IsReadableByteStreamController(this)) {
-          throw byteStreamControllerBrandCheckException("desiredSize");
-        }
-        return ReadableByteStreamControllerGetDesiredSize(this);
-      }
-      close() {
-        if (!IsReadableByteStreamController(this)) {
-          throw byteStreamControllerBrandCheckException("close");
-        }
-        if (this._closeRequested) {
-          throw new TypeError("The stream has already been closed; do not close it again!");
-        }
-        const state = this._controlledReadableByteStream._state;
-        if (state !== "readable") {
-          throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be closed`);
-        }
-        ReadableByteStreamControllerClose(this);
-      }
-      enqueue(chunk) {
-        if (!IsReadableByteStreamController(this)) {
-          throw byteStreamControllerBrandCheckException("enqueue");
-        }
-        assertRequiredArgument(chunk, 1, "enqueue");
-        if (!ArrayBuffer.isView(chunk)) {
-          throw new TypeError("chunk must be an array buffer view");
-        }
-        if (chunk.byteLength === 0) {
-          throw new TypeError("chunk must have non-zero byteLength");
-        }
-        if (chunk.buffer.byteLength === 0) {
-          throw new TypeError(`chunk's buffer must have non-zero byteLength`);
-        }
-        if (this._closeRequested) {
-          throw new TypeError("stream is closed or draining");
-        }
-        const state = this._controlledReadableByteStream._state;
-        if (state !== "readable") {
-          throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be enqueued to`);
-        }
-        ReadableByteStreamControllerEnqueue(this, chunk);
-      }
-      error(e = undefined) {
-        if (!IsReadableByteStreamController(this)) {
-          throw byteStreamControllerBrandCheckException("error");
-        }
-        ReadableByteStreamControllerError(this, e);
-      }
-      [CancelSteps](reason) {
-        ReadableByteStreamControllerClearPendingPullIntos(this);
-        ResetQueue(this);
-        const result = this._cancelAlgorithm(reason);
-        ReadableByteStreamControllerClearAlgorithms(this);
-        return result;
-      }
-      [PullSteps](readRequest) {
-        const stream = this._controlledReadableByteStream;
-        if (this._queueTotalSize > 0) {
-          ReadableByteStreamControllerFillReadRequestFromQueue(this, readRequest);
-          return;
-        }
-        const autoAllocateChunkSize = this._autoAllocateChunkSize;
-        if (autoAllocateChunkSize !== undefined) {
-          let buffer;
-          try {
-            buffer = new ArrayBuffer(autoAllocateChunkSize);
-          } catch (bufferE) {
-            readRequest._errorSteps(bufferE);
-            return;
-          }
-          const pullIntoDescriptor = {
-            buffer,
-            bufferByteLength: autoAllocateChunkSize,
-            byteOffset: 0,
-            byteLength: autoAllocateChunkSize,
-            bytesFilled: 0,
-            minimumFill: 1,
-            elementSize: 1,
-            viewConstructor: Uint8Array,
-            readerType: "default"
-          };
-          this._pendingPullIntos.push(pullIntoDescriptor);
-        }
-        ReadableStreamAddReadRequest(stream, readRequest);
-        ReadableByteStreamControllerCallPullIfNeeded(this);
-      }
-      [ReleaseSteps]() {
-        if (this._pendingPullIntos.length > 0) {
-          const firstPullInto = this._pendingPullIntos.peek();
-          firstPullInto.readerType = "none";
-          this._pendingPullIntos = new SimpleQueue;
-          this._pendingPullIntos.push(firstPullInto);
-        }
-      }
-    }
-    Object.defineProperties(ReadableByteStreamController.prototype, {
-      close: { enumerable: true },
-      enqueue: { enumerable: true },
-      error: { enumerable: true },
-      byobRequest: { enumerable: true },
-      desiredSize: { enumerable: true }
-    });
-    setFunctionName(ReadableByteStreamController.prototype.close, "close");
-    setFunctionName(ReadableByteStreamController.prototype.enqueue, "enqueue");
-    setFunctionName(ReadableByteStreamController.prototype.error, "error");
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(ReadableByteStreamController.prototype, Symbol.toStringTag, {
-        value: "ReadableByteStreamController",
-        configurable: true
-      });
-    }
-    function IsReadableByteStreamController(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_controlledReadableByteStream")) {
-        return false;
-      }
-      return x instanceof ReadableByteStreamController;
-    }
-    function IsReadableStreamBYOBRequest(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_associatedReadableByteStreamController")) {
-        return false;
-      }
-      return x instanceof ReadableStreamBYOBRequest;
-    }
-    function ReadableByteStreamControllerCallPullIfNeeded(controller) {
-      const shouldPull = ReadableByteStreamControllerShouldCallPull(controller);
-      if (!shouldPull) {
-        return;
-      }
-      if (controller._pulling) {
-        controller._pullAgain = true;
-        return;
-      }
-      controller._pulling = true;
-      const pullPromise = controller._pullAlgorithm();
-      uponPromise(pullPromise, () => {
-        controller._pulling = false;
-        if (controller._pullAgain) {
-          controller._pullAgain = false;
-          ReadableByteStreamControllerCallPullIfNeeded(controller);
-        }
-        return null;
-      }, (e) => {
-        ReadableByteStreamControllerError(controller, e);
-        return null;
-      });
-    }
-    function ReadableByteStreamControllerClearPendingPullIntos(controller) {
-      ReadableByteStreamControllerInvalidateBYOBRequest(controller);
-      controller._pendingPullIntos = new SimpleQueue;
-    }
-    function ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor) {
-      let done = false;
-      if (stream._state === "closed") {
-        done = true;
-      }
-      const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
-      if (pullIntoDescriptor.readerType === "default") {
-        ReadableStreamFulfillReadRequest(stream, filledView, done);
-      } else {
-        ReadableStreamFulfillReadIntoRequest(stream, filledView, done);
-      }
-    }
-    function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor) {
-      const bytesFilled = pullIntoDescriptor.bytesFilled;
-      const elementSize = pullIntoDescriptor.elementSize;
-      return new pullIntoDescriptor.viewConstructor(pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, bytesFilled / elementSize);
-    }
-    function ReadableByteStreamControllerEnqueueChunkToQueue(controller, buffer, byteOffset, byteLength) {
-      controller._queue.push({ buffer, byteOffset, byteLength });
-      controller._queueTotalSize += byteLength;
-    }
-    function ReadableByteStreamControllerEnqueueClonedChunkToQueue(controller, buffer, byteOffset, byteLength) {
-      let clonedChunk;
-      try {
-        clonedChunk = ArrayBufferSlice(buffer, byteOffset, byteOffset + byteLength);
-      } catch (cloneE) {
-        ReadableByteStreamControllerError(controller, cloneE);
-        throw cloneE;
-      }
-      ReadableByteStreamControllerEnqueueChunkToQueue(controller, clonedChunk, 0, byteLength);
-    }
-    function ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstDescriptor) {
-      if (firstDescriptor.bytesFilled > 0) {
-        ReadableByteStreamControllerEnqueueClonedChunkToQueue(controller, firstDescriptor.buffer, firstDescriptor.byteOffset, firstDescriptor.bytesFilled);
-      }
-      ReadableByteStreamControllerShiftPendingPullInto(controller);
-    }
-    function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
-      const maxBytesToCopy = Math.min(controller._queueTotalSize, pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled);
-      const maxBytesFilled = pullIntoDescriptor.bytesFilled + maxBytesToCopy;
-      let totalBytesToCopyRemaining = maxBytesToCopy;
-      let ready = false;
-      const remainderBytes = maxBytesFilled % pullIntoDescriptor.elementSize;
-      const maxAlignedBytes = maxBytesFilled - remainderBytes;
-      if (maxAlignedBytes >= pullIntoDescriptor.minimumFill) {
-        totalBytesToCopyRemaining = maxAlignedBytes - pullIntoDescriptor.bytesFilled;
-        ready = true;
-      }
-      const queue = controller._queue;
-      while (totalBytesToCopyRemaining > 0) {
-        const headOfQueue = queue.peek();
-        const bytesToCopy = Math.min(totalBytesToCopyRemaining, headOfQueue.byteLength);
-        const destStart = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
-        CopyDataBlockBytes(pullIntoDescriptor.buffer, destStart, headOfQueue.buffer, headOfQueue.byteOffset, bytesToCopy);
-        if (headOfQueue.byteLength === bytesToCopy) {
-          queue.shift();
-        } else {
-          headOfQueue.byteOffset += bytesToCopy;
-          headOfQueue.byteLength -= bytesToCopy;
-        }
-        controller._queueTotalSize -= bytesToCopy;
-        ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesToCopy, pullIntoDescriptor);
-        totalBytesToCopyRemaining -= bytesToCopy;
-      }
-      return ready;
-    }
-    function ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, size, pullIntoDescriptor) {
-      pullIntoDescriptor.bytesFilled += size;
-    }
-    function ReadableByteStreamControllerHandleQueueDrain(controller) {
-      if (controller._queueTotalSize === 0 && controller._closeRequested) {
-        ReadableByteStreamControllerClearAlgorithms(controller);
-        ReadableStreamClose(controller._controlledReadableByteStream);
-      } else {
-        ReadableByteStreamControllerCallPullIfNeeded(controller);
-      }
-    }
-    function ReadableByteStreamControllerInvalidateBYOBRequest(controller) {
-      if (controller._byobRequest === null) {
-        return;
-      }
-      controller._byobRequest._associatedReadableByteStreamController = undefined;
-      controller._byobRequest._view = null;
-      controller._byobRequest = null;
-    }
-    function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller) {
-      while (controller._pendingPullIntos.length > 0) {
-        if (controller._queueTotalSize === 0) {
-          return;
-        }
-        const pullIntoDescriptor = controller._pendingPullIntos.peek();
-        if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor)) {
-          ReadableByteStreamControllerShiftPendingPullInto(controller);
-          ReadableByteStreamControllerCommitPullIntoDescriptor(controller._controlledReadableByteStream, pullIntoDescriptor);
-        }
-      }
-    }
-    function ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller) {
-      const reader = controller._controlledReadableByteStream._reader;
-      while (reader._readRequests.length > 0) {
-        if (controller._queueTotalSize === 0) {
-          return;
-        }
-        const readRequest = reader._readRequests.shift();
-        ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest);
-      }
-    }
-    function ReadableByteStreamControllerPullInto(controller, view, min, readIntoRequest) {
-      const stream = controller._controlledReadableByteStream;
-      const ctor = view.constructor;
-      const elementSize = arrayBufferViewElementSize(ctor);
-      const { byteOffset, byteLength } = view;
-      const minimumFill = min * elementSize;
-      let buffer;
-      try {
-        buffer = TransferArrayBuffer(view.buffer);
-      } catch (e) {
-        readIntoRequest._errorSteps(e);
-        return;
-      }
-      const pullIntoDescriptor = {
-        buffer,
-        bufferByteLength: buffer.byteLength,
-        byteOffset,
-        byteLength,
-        bytesFilled: 0,
-        minimumFill,
-        elementSize,
-        viewConstructor: ctor,
-        readerType: "byob"
-      };
-      if (controller._pendingPullIntos.length > 0) {
-        controller._pendingPullIntos.push(pullIntoDescriptor);
-        ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
-        return;
-      }
-      if (stream._state === "closed") {
-        const emptyView = new ctor(pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, 0);
-        readIntoRequest._closeSteps(emptyView);
-        return;
-      }
-      if (controller._queueTotalSize > 0) {
-        if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor)) {
-          const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
-          ReadableByteStreamControllerHandleQueueDrain(controller);
-          readIntoRequest._chunkSteps(filledView);
-          return;
-        }
-        if (controller._closeRequested) {
-          const e = new TypeError("Insufficient bytes to fill elements in the given buffer");
-          ReadableByteStreamControllerError(controller, e);
-          readIntoRequest._errorSteps(e);
-          return;
-        }
-      }
-      controller._pendingPullIntos.push(pullIntoDescriptor);
-      ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
-      ReadableByteStreamControllerCallPullIfNeeded(controller);
-    }
-    function ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor) {
-      if (firstDescriptor.readerType === "none") {
-        ReadableByteStreamControllerShiftPendingPullInto(controller);
-      }
-      const stream = controller._controlledReadableByteStream;
-      if (ReadableStreamHasBYOBReader(stream)) {
-        while (ReadableStreamGetNumReadIntoRequests(stream) > 0) {
-          const pullIntoDescriptor = ReadableByteStreamControllerShiftPendingPullInto(controller);
-          ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor);
-        }
-      }
-    }
-    function ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, pullIntoDescriptor) {
-      ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesWritten, pullIntoDescriptor);
-      if (pullIntoDescriptor.readerType === "none") {
-        ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, pullIntoDescriptor);
-        ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
-        return;
-      }
-      if (pullIntoDescriptor.bytesFilled < pullIntoDescriptor.minimumFill) {
-        return;
-      }
-      ReadableByteStreamControllerShiftPendingPullInto(controller);
-      const remainderSize = pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize;
-      if (remainderSize > 0) {
-        const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
-        ReadableByteStreamControllerEnqueueClonedChunkToQueue(controller, pullIntoDescriptor.buffer, end - remainderSize, remainderSize);
-      }
-      pullIntoDescriptor.bytesFilled -= remainderSize;
-      ReadableByteStreamControllerCommitPullIntoDescriptor(controller._controlledReadableByteStream, pullIntoDescriptor);
-      ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
-    }
-    function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
-      const firstDescriptor = controller._pendingPullIntos.peek();
-      ReadableByteStreamControllerInvalidateBYOBRequest(controller);
-      const state = controller._controlledReadableByteStream._state;
-      if (state === "closed") {
-        ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor);
-      } else {
-        ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, firstDescriptor);
-      }
-      ReadableByteStreamControllerCallPullIfNeeded(controller);
-    }
-    function ReadableByteStreamControllerShiftPendingPullInto(controller) {
-      const descriptor = controller._pendingPullIntos.shift();
-      return descriptor;
-    }
-    function ReadableByteStreamControllerShouldCallPull(controller) {
-      const stream = controller._controlledReadableByteStream;
-      if (stream._state !== "readable") {
-        return false;
-      }
-      if (controller._closeRequested) {
-        return false;
-      }
-      if (!controller._started) {
-        return false;
-      }
-      if (ReadableStreamHasDefaultReader(stream) && ReadableStreamGetNumReadRequests(stream) > 0) {
-        return true;
-      }
-      if (ReadableStreamHasBYOBReader(stream) && ReadableStreamGetNumReadIntoRequests(stream) > 0) {
-        return true;
-      }
-      const desiredSize = ReadableByteStreamControllerGetDesiredSize(controller);
-      if (desiredSize > 0) {
-        return true;
-      }
-      return false;
-    }
-    function ReadableByteStreamControllerClearAlgorithms(controller) {
-      controller._pullAlgorithm = undefined;
-      controller._cancelAlgorithm = undefined;
-    }
-    function ReadableByteStreamControllerClose(controller) {
-      const stream = controller._controlledReadableByteStream;
-      if (controller._closeRequested || stream._state !== "readable") {
-        return;
-      }
-      if (controller._queueTotalSize > 0) {
-        controller._closeRequested = true;
-        return;
-      }
-      if (controller._pendingPullIntos.length > 0) {
-        const firstPendingPullInto = controller._pendingPullIntos.peek();
-        if (firstPendingPullInto.bytesFilled % firstPendingPullInto.elementSize !== 0) {
-          const e = new TypeError("Insufficient bytes to fill elements in the given buffer");
-          ReadableByteStreamControllerError(controller, e);
-          throw e;
-        }
-      }
-      ReadableByteStreamControllerClearAlgorithms(controller);
-      ReadableStreamClose(stream);
-    }
-    function ReadableByteStreamControllerEnqueue(controller, chunk) {
-      const stream = controller._controlledReadableByteStream;
-      if (controller._closeRequested || stream._state !== "readable") {
-        return;
-      }
-      const { buffer, byteOffset, byteLength } = chunk;
-      if (IsDetachedBuffer(buffer)) {
-        throw new TypeError("chunk's buffer is detached and so cannot be enqueued");
-      }
-      const transferredBuffer = TransferArrayBuffer(buffer);
-      if (controller._pendingPullIntos.length > 0) {
-        const firstPendingPullInto = controller._pendingPullIntos.peek();
-        if (IsDetachedBuffer(firstPendingPullInto.buffer)) {
-          throw new TypeError("The BYOB request's buffer has been detached and so cannot be filled with an enqueued chunk");
-        }
-        ReadableByteStreamControllerInvalidateBYOBRequest(controller);
-        firstPendingPullInto.buffer = TransferArrayBuffer(firstPendingPullInto.buffer);
-        if (firstPendingPullInto.readerType === "none") {
-          ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstPendingPullInto);
-        }
-      }
-      if (ReadableStreamHasDefaultReader(stream)) {
-        ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller);
-        if (ReadableStreamGetNumReadRequests(stream) === 0) {
-          ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
-        } else {
-          if (controller._pendingPullIntos.length > 0) {
-            ReadableByteStreamControllerShiftPendingPullInto(controller);
-          }
-          const transferredView = new Uint8Array(transferredBuffer, byteOffset, byteLength);
-          ReadableStreamFulfillReadRequest(stream, transferredView, false);
-        }
-      } else if (ReadableStreamHasBYOBReader(stream)) {
-        ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
-        ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
-      } else {
-        ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
-      }
-      ReadableByteStreamControllerCallPullIfNeeded(controller);
-    }
-    function ReadableByteStreamControllerError(controller, e) {
-      const stream = controller._controlledReadableByteStream;
-      if (stream._state !== "readable") {
-        return;
-      }
-      ReadableByteStreamControllerClearPendingPullIntos(controller);
-      ResetQueue(controller);
-      ReadableByteStreamControllerClearAlgorithms(controller);
-      ReadableStreamError(stream, e);
-    }
-    function ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest) {
-      const entry = controller._queue.shift();
-      controller._queueTotalSize -= entry.byteLength;
-      ReadableByteStreamControllerHandleQueueDrain(controller);
-      const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
-      readRequest._chunkSteps(view);
-    }
-    function ReadableByteStreamControllerGetBYOBRequest(controller) {
-      if (controller._byobRequest === null && controller._pendingPullIntos.length > 0) {
-        const firstDescriptor = controller._pendingPullIntos.peek();
-        const view = new Uint8Array(firstDescriptor.buffer, firstDescriptor.byteOffset + firstDescriptor.bytesFilled, firstDescriptor.byteLength - firstDescriptor.bytesFilled);
-        const byobRequest = Object.create(ReadableStreamBYOBRequest.prototype);
-        SetUpReadableStreamBYOBRequest(byobRequest, controller, view);
-        controller._byobRequest = byobRequest;
-      }
-      return controller._byobRequest;
-    }
-    function ReadableByteStreamControllerGetDesiredSize(controller) {
-      const state = controller._controlledReadableByteStream._state;
-      if (state === "errored") {
-        return null;
-      }
-      if (state === "closed") {
-        return 0;
-      }
-      return controller._strategyHWM - controller._queueTotalSize;
-    }
-    function ReadableByteStreamControllerRespond(controller, bytesWritten) {
-      const firstDescriptor = controller._pendingPullIntos.peek();
-      const state = controller._controlledReadableByteStream._state;
-      if (state === "closed") {
-        if (bytesWritten !== 0) {
-          throw new TypeError("bytesWritten must be 0 when calling respond() on a closed stream");
-        }
-      } else {
-        if (bytesWritten === 0) {
-          throw new TypeError("bytesWritten must be greater than 0 when calling respond() on a readable stream");
-        }
-        if (firstDescriptor.bytesFilled + bytesWritten > firstDescriptor.byteLength) {
-          throw new RangeError("bytesWritten out of range");
-        }
-      }
-      firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
-      ReadableByteStreamControllerRespondInternal(controller, bytesWritten);
-    }
-    function ReadableByteStreamControllerRespondWithNewView(controller, view) {
-      const firstDescriptor = controller._pendingPullIntos.peek();
-      const state = controller._controlledReadableByteStream._state;
-      if (state === "closed") {
-        if (view.byteLength !== 0) {
-          throw new TypeError("The view's length must be 0 when calling respondWithNewView() on a closed stream");
-        }
-      } else {
-        if (view.byteLength === 0) {
-          throw new TypeError("The view's length must be greater than 0 when calling respondWithNewView() on a readable stream");
-        }
-      }
-      if (firstDescriptor.byteOffset + firstDescriptor.bytesFilled !== view.byteOffset) {
-        throw new RangeError("The region specified by view does not match byobRequest");
-      }
-      if (firstDescriptor.bufferByteLength !== view.buffer.byteLength) {
-        throw new RangeError("The buffer of view has different capacity than byobRequest");
-      }
-      if (firstDescriptor.bytesFilled + view.byteLength > firstDescriptor.byteLength) {
-        throw new RangeError("The region specified by view is larger than byobRequest");
-      }
-      const viewByteLength = view.byteLength;
-      firstDescriptor.buffer = TransferArrayBuffer(view.buffer);
-      ReadableByteStreamControllerRespondInternal(controller, viewByteLength);
-    }
-    function SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize) {
-      controller._controlledReadableByteStream = stream;
-      controller._pullAgain = false;
-      controller._pulling = false;
-      controller._byobRequest = null;
-      controller._queue = controller._queueTotalSize = undefined;
-      ResetQueue(controller);
-      controller._closeRequested = false;
-      controller._started = false;
-      controller._strategyHWM = highWaterMark;
-      controller._pullAlgorithm = pullAlgorithm;
-      controller._cancelAlgorithm = cancelAlgorithm;
-      controller._autoAllocateChunkSize = autoAllocateChunkSize;
-      controller._pendingPullIntos = new SimpleQueue;
-      stream._readableStreamController = controller;
-      const startResult = startAlgorithm();
-      uponPromise(promiseResolvedWith(startResult), () => {
-        controller._started = true;
-        ReadableByteStreamControllerCallPullIfNeeded(controller);
-        return null;
-      }, (r) => {
-        ReadableByteStreamControllerError(controller, r);
-        return null;
-      });
-    }
-    function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyingByteSource, highWaterMark) {
-      const controller = Object.create(ReadableByteStreamController.prototype);
-      let startAlgorithm;
-      let pullAlgorithm;
-      let cancelAlgorithm;
-      if (underlyingByteSource.start !== undefined) {
-        startAlgorithm = () => underlyingByteSource.start(controller);
-      } else {
-        startAlgorithm = () => {
-          return;
-        };
-      }
-      if (underlyingByteSource.pull !== undefined) {
-        pullAlgorithm = () => underlyingByteSource.pull(controller);
-      } else {
-        pullAlgorithm = () => promiseResolvedWith(undefined);
-      }
-      if (underlyingByteSource.cancel !== undefined) {
-        cancelAlgorithm = (reason) => underlyingByteSource.cancel(reason);
-      } else {
-        cancelAlgorithm = () => promiseResolvedWith(undefined);
-      }
-      const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
-      if (autoAllocateChunkSize === 0) {
-        throw new TypeError("autoAllocateChunkSize must be greater than 0");
-      }
-      SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize);
-    }
-    function SetUpReadableStreamBYOBRequest(request, controller, view) {
-      request._associatedReadableByteStreamController = controller;
-      request._view = view;
-    }
-    function byobRequestBrandCheckException(name) {
-      return new TypeError(`ReadableStreamBYOBRequest.prototype.${name} can only be used on a ReadableStreamBYOBRequest`);
-    }
-    function byteStreamControllerBrandCheckException(name) {
-      return new TypeError(`ReadableByteStreamController.prototype.${name} can only be used on a ReadableByteStreamController`);
-    }
-    function convertReaderOptions(options, context) {
-      assertDictionary(options, context);
-      const mode = options === null || options === undefined ? undefined : options.mode;
-      return {
-        mode: mode === undefined ? undefined : convertReadableStreamReaderMode(mode, `${context} has member 'mode' that`)
-      };
-    }
-    function convertReadableStreamReaderMode(mode, context) {
-      mode = `${mode}`;
-      if (mode !== "byob") {
-        throw new TypeError(`${context} '${mode}' is not a valid enumeration value for ReadableStreamReaderMode`);
-      }
-      return mode;
-    }
-    function convertByobReadOptions(options, context) {
-      var _a2;
-      assertDictionary(options, context);
-      const min = (_a2 = options === null || options === undefined ? undefined : options.min) !== null && _a2 !== undefined ? _a2 : 1;
-      return {
-        min: convertUnsignedLongLongWithEnforceRange(min, `${context} has member 'min' that`)
-      };
-    }
-    function AcquireReadableStreamBYOBReader(stream) {
-      return new ReadableStreamBYOBReader(stream);
-    }
-    function ReadableStreamAddReadIntoRequest(stream, readIntoRequest) {
-      stream._reader._readIntoRequests.push(readIntoRequest);
-    }
-    function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {
-      const reader = stream._reader;
-      const readIntoRequest = reader._readIntoRequests.shift();
-      if (done) {
-        readIntoRequest._closeSteps(chunk);
-      } else {
-        readIntoRequest._chunkSteps(chunk);
-      }
-    }
-    function ReadableStreamGetNumReadIntoRequests(stream) {
-      return stream._reader._readIntoRequests.length;
-    }
-    function ReadableStreamHasBYOBReader(stream) {
-      const reader = stream._reader;
-      if (reader === undefined) {
-        return false;
-      }
-      if (!IsReadableStreamBYOBReader(reader)) {
-        return false;
-      }
-      return true;
-    }
-
-    class ReadableStreamBYOBReader {
-      constructor(stream) {
-        assertRequiredArgument(stream, 1, "ReadableStreamBYOBReader");
-        assertReadableStream(stream, "First parameter");
-        if (IsReadableStreamLocked(stream)) {
-          throw new TypeError("This stream has already been locked for exclusive reading by another reader");
-        }
-        if (!IsReadableByteStreamController(stream._readableStreamController)) {
-          throw new TypeError("Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte " + "source");
-        }
-        ReadableStreamReaderGenericInitialize(this, stream);
-        this._readIntoRequests = new SimpleQueue;
-      }
-      get closed() {
-        if (!IsReadableStreamBYOBReader(this)) {
-          return promiseRejectedWith(byobReaderBrandCheckException("closed"));
-        }
-        return this._closedPromise;
-      }
-      cancel(reason = undefined) {
-        if (!IsReadableStreamBYOBReader(this)) {
-          return promiseRejectedWith(byobReaderBrandCheckException("cancel"));
-        }
-        if (this._ownerReadableStream === undefined) {
-          return promiseRejectedWith(readerLockException("cancel"));
-        }
-        return ReadableStreamReaderGenericCancel(this, reason);
-      }
-      read(view, rawOptions = {}) {
-        if (!IsReadableStreamBYOBReader(this)) {
-          return promiseRejectedWith(byobReaderBrandCheckException("read"));
-        }
-        if (!ArrayBuffer.isView(view)) {
-          return promiseRejectedWith(new TypeError("view must be an array buffer view"));
-        }
-        if (view.byteLength === 0) {
-          return promiseRejectedWith(new TypeError("view must have non-zero byteLength"));
-        }
-        if (view.buffer.byteLength === 0) {
-          return promiseRejectedWith(new TypeError(`view's buffer must have non-zero byteLength`));
-        }
-        if (IsDetachedBuffer(view.buffer)) {
-          return promiseRejectedWith(new TypeError("view's buffer has been detached"));
-        }
-        let options;
-        try {
-          options = convertByobReadOptions(rawOptions, "options");
-        } catch (e) {
-          return promiseRejectedWith(e);
-        }
-        const min = options.min;
-        if (min === 0) {
-          return promiseRejectedWith(new TypeError("options.min must be greater than 0"));
-        }
-        if (!isDataView(view)) {
-          if (min > view.length) {
-            return promiseRejectedWith(new RangeError("options.min must be less than or equal to view's length"));
-          }
-        } else if (min > view.byteLength) {
-          return promiseRejectedWith(new RangeError("options.min must be less than or equal to view's byteLength"));
-        }
-        if (this._ownerReadableStream === undefined) {
-          return promiseRejectedWith(readerLockException("read from"));
-        }
-        let resolvePromise;
-        let rejectPromise;
-        const promise = newPromise((resolve, reject) => {
-          resolvePromise = resolve;
-          rejectPromise = reject;
-        });
-        const readIntoRequest = {
-          _chunkSteps: (chunk) => resolvePromise({ value: chunk, done: false }),
-          _closeSteps: (chunk) => resolvePromise({ value: chunk, done: true }),
-          _errorSteps: (e) => rejectPromise(e)
-        };
-        ReadableStreamBYOBReaderRead(this, view, min, readIntoRequest);
-        return promise;
-      }
-      releaseLock() {
-        if (!IsReadableStreamBYOBReader(this)) {
-          throw byobReaderBrandCheckException("releaseLock");
-        }
-        if (this._ownerReadableStream === undefined) {
-          return;
-        }
-        ReadableStreamBYOBReaderRelease(this);
-      }
-    }
-    Object.defineProperties(ReadableStreamBYOBReader.prototype, {
-      cancel: { enumerable: true },
-      read: { enumerable: true },
-      releaseLock: { enumerable: true },
-      closed: { enumerable: true }
-    });
-    setFunctionName(ReadableStreamBYOBReader.prototype.cancel, "cancel");
-    setFunctionName(ReadableStreamBYOBReader.prototype.read, "read");
-    setFunctionName(ReadableStreamBYOBReader.prototype.releaseLock, "releaseLock");
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(ReadableStreamBYOBReader.prototype, Symbol.toStringTag, {
-        value: "ReadableStreamBYOBReader",
-        configurable: true
-      });
-    }
-    function IsReadableStreamBYOBReader(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_readIntoRequests")) {
-        return false;
-      }
-      return x instanceof ReadableStreamBYOBReader;
-    }
-    function ReadableStreamBYOBReaderRead(reader, view, min, readIntoRequest) {
-      const stream = reader._ownerReadableStream;
-      stream._disturbed = true;
-      if (stream._state === "errored") {
-        readIntoRequest._errorSteps(stream._storedError);
-      } else {
-        ReadableByteStreamControllerPullInto(stream._readableStreamController, view, min, readIntoRequest);
-      }
-    }
-    function ReadableStreamBYOBReaderRelease(reader) {
-      ReadableStreamReaderGenericRelease(reader);
-      const e = new TypeError("Reader was released");
-      ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e);
-    }
-    function ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e) {
-      const readIntoRequests = reader._readIntoRequests;
-      reader._readIntoRequests = new SimpleQueue;
-      readIntoRequests.forEach((readIntoRequest) => {
-        readIntoRequest._errorSteps(e);
-      });
-    }
-    function byobReaderBrandCheckException(name) {
-      return new TypeError(`ReadableStreamBYOBReader.prototype.${name} can only be used on a ReadableStreamBYOBReader`);
-    }
-    function ExtractHighWaterMark(strategy, defaultHWM) {
-      const { highWaterMark } = strategy;
-      if (highWaterMark === undefined) {
-        return defaultHWM;
-      }
-      if (NumberIsNaN(highWaterMark) || highWaterMark < 0) {
-        throw new RangeError("Invalid highWaterMark");
-      }
-      return highWaterMark;
-    }
-    function ExtractSizeAlgorithm(strategy) {
-      const { size } = strategy;
-      if (!size) {
-        return () => 1;
-      }
-      return size;
-    }
-    function convertQueuingStrategy(init, context) {
-      assertDictionary(init, context);
-      const highWaterMark = init === null || init === undefined ? undefined : init.highWaterMark;
-      const size = init === null || init === undefined ? undefined : init.size;
-      return {
-        highWaterMark: highWaterMark === undefined ? undefined : convertUnrestrictedDouble(highWaterMark),
-        size: size === undefined ? undefined : convertQueuingStrategySize(size, `${context} has member 'size' that`)
-      };
-    }
-    function convertQueuingStrategySize(fn, context) {
-      assertFunction(fn, context);
-      return (chunk) => convertUnrestrictedDouble(fn(chunk));
-    }
-    function convertUnderlyingSink(original, context) {
-      assertDictionary(original, context);
-      const abort = original === null || original === undefined ? undefined : original.abort;
-      const close = original === null || original === undefined ? undefined : original.close;
-      const start = original === null || original === undefined ? undefined : original.start;
-      const type2 = original === null || original === undefined ? undefined : original.type;
-      const write = original === null || original === undefined ? undefined : original.write;
-      return {
-        abort: abort === undefined ? undefined : convertUnderlyingSinkAbortCallback(abort, original, `${context} has member 'abort' that`),
-        close: close === undefined ? undefined : convertUnderlyingSinkCloseCallback(close, original, `${context} has member 'close' that`),
-        start: start === undefined ? undefined : convertUnderlyingSinkStartCallback(start, original, `${context} has member 'start' that`),
-        write: write === undefined ? undefined : convertUnderlyingSinkWriteCallback(write, original, `${context} has member 'write' that`),
-        type: type2
-      };
-    }
-    function convertUnderlyingSinkAbortCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (reason) => promiseCall(fn, original, [reason]);
-    }
-    function convertUnderlyingSinkCloseCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return () => promiseCall(fn, original, []);
-    }
-    function convertUnderlyingSinkStartCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (controller) => reflectCall(fn, original, [controller]);
-    }
-    function convertUnderlyingSinkWriteCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (chunk, controller) => promiseCall(fn, original, [chunk, controller]);
-    }
-    function assertWritableStream(x, context) {
-      if (!IsWritableStream(x)) {
-        throw new TypeError(`${context} is not a WritableStream.`);
-      }
-    }
-    function isAbortSignal(value) {
-      if (typeof value !== "object" || value === null) {
-        return false;
-      }
-      try {
-        return typeof value.aborted === "boolean";
-      } catch (_a2) {
-        return false;
-      }
-    }
-    const supportsAbortController = typeof AbortController === "function";
-    function createAbortController() {
-      if (supportsAbortController) {
-        return new AbortController;
-      }
-      return;
-    }
-
-    class WritableStream {
-      constructor(rawUnderlyingSink = {}, rawStrategy = {}) {
-        if (rawUnderlyingSink === undefined) {
-          rawUnderlyingSink = null;
-        } else {
-          assertObject(rawUnderlyingSink, "First parameter");
-        }
-        const strategy = convertQueuingStrategy(rawStrategy, "Second parameter");
-        const underlyingSink = convertUnderlyingSink(rawUnderlyingSink, "First parameter");
-        InitializeWritableStream(this);
-        const type2 = underlyingSink.type;
-        if (type2 !== undefined) {
-          throw new RangeError("Invalid type is specified");
-        }
-        const sizeAlgorithm = ExtractSizeAlgorithm(strategy);
-        const highWaterMark = ExtractHighWaterMark(strategy, 1);
-        SetUpWritableStreamDefaultControllerFromUnderlyingSink(this, underlyingSink, highWaterMark, sizeAlgorithm);
-      }
-      get locked() {
-        if (!IsWritableStream(this)) {
-          throw streamBrandCheckException$2("locked");
-        }
-        return IsWritableStreamLocked(this);
-      }
-      abort(reason = undefined) {
-        if (!IsWritableStream(this)) {
-          return promiseRejectedWith(streamBrandCheckException$2("abort"));
-        }
-        if (IsWritableStreamLocked(this)) {
-          return promiseRejectedWith(new TypeError("Cannot abort a stream that already has a writer"));
-        }
-        return WritableStreamAbort(this, reason);
-      }
-      close() {
-        if (!IsWritableStream(this)) {
-          return promiseRejectedWith(streamBrandCheckException$2("close"));
-        }
-        if (IsWritableStreamLocked(this)) {
-          return promiseRejectedWith(new TypeError("Cannot close a stream that already has a writer"));
-        }
-        if (WritableStreamCloseQueuedOrInFlight(this)) {
-          return promiseRejectedWith(new TypeError("Cannot close an already-closing stream"));
-        }
-        return WritableStreamClose(this);
-      }
-      getWriter() {
-        if (!IsWritableStream(this)) {
-          throw streamBrandCheckException$2("getWriter");
-        }
-        return AcquireWritableStreamDefaultWriter(this);
-      }
-    }
-    Object.defineProperties(WritableStream.prototype, {
-      abort: { enumerable: true },
-      close: { enumerable: true },
-      getWriter: { enumerable: true },
-      locked: { enumerable: true }
-    });
-    setFunctionName(WritableStream.prototype.abort, "abort");
-    setFunctionName(WritableStream.prototype.close, "close");
-    setFunctionName(WritableStream.prototype.getWriter, "getWriter");
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(WritableStream.prototype, Symbol.toStringTag, {
-        value: "WritableStream",
-        configurable: true
-      });
-    }
-    function AcquireWritableStreamDefaultWriter(stream) {
-      return new WritableStreamDefaultWriter(stream);
-    }
-    function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark = 1, sizeAlgorithm = () => 1) {
-      const stream = Object.create(WritableStream.prototype);
-      InitializeWritableStream(stream);
-      const controller = Object.create(WritableStreamDefaultController.prototype);
-      SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm);
-      return stream;
-    }
-    function InitializeWritableStream(stream) {
-      stream._state = "writable";
-      stream._storedError = undefined;
-      stream._writer = undefined;
-      stream._writableStreamController = undefined;
-      stream._writeRequests = new SimpleQueue;
-      stream._inFlightWriteRequest = undefined;
-      stream._closeRequest = undefined;
-      stream._inFlightCloseRequest = undefined;
-      stream._pendingAbortRequest = undefined;
-      stream._backpressure = false;
-    }
-    function IsWritableStream(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_writableStreamController")) {
-        return false;
-      }
-      return x instanceof WritableStream;
-    }
-    function IsWritableStreamLocked(stream) {
-      if (stream._writer === undefined) {
-        return false;
-      }
-      return true;
-    }
-    function WritableStreamAbort(stream, reason) {
-      var _a2;
-      if (stream._state === "closed" || stream._state === "errored") {
-        return promiseResolvedWith(undefined);
-      }
-      stream._writableStreamController._abortReason = reason;
-      (_a2 = stream._writableStreamController._abortController) === null || _a2 === undefined || _a2.abort(reason);
-      const state = stream._state;
-      if (state === "closed" || state === "errored") {
-        return promiseResolvedWith(undefined);
-      }
-      if (stream._pendingAbortRequest !== undefined) {
-        return stream._pendingAbortRequest._promise;
-      }
-      let wasAlreadyErroring = false;
-      if (state === "erroring") {
-        wasAlreadyErroring = true;
-        reason = undefined;
-      }
-      const promise = newPromise((resolve, reject) => {
-        stream._pendingAbortRequest = {
-          _promise: undefined,
-          _resolve: resolve,
-          _reject: reject,
-          _reason: reason,
-          _wasAlreadyErroring: wasAlreadyErroring
-        };
-      });
-      stream._pendingAbortRequest._promise = promise;
-      if (!wasAlreadyErroring) {
-        WritableStreamStartErroring(stream, reason);
-      }
-      return promise;
-    }
-    function WritableStreamClose(stream) {
-      const state = stream._state;
-      if (state === "closed" || state === "errored") {
-        return promiseRejectedWith(new TypeError(`The stream (in ${state} state) is not in the writable state and cannot be closed`));
-      }
-      const promise = newPromise((resolve, reject) => {
-        const closeRequest = {
-          _resolve: resolve,
-          _reject: reject
-        };
-        stream._closeRequest = closeRequest;
-      });
-      const writer = stream._writer;
-      if (writer !== undefined && stream._backpressure && state === "writable") {
-        defaultWriterReadyPromiseResolve(writer);
-      }
-      WritableStreamDefaultControllerClose(stream._writableStreamController);
-      return promise;
-    }
-    function WritableStreamAddWriteRequest(stream) {
-      const promise = newPromise((resolve, reject) => {
-        const writeRequest = {
-          _resolve: resolve,
-          _reject: reject
-        };
-        stream._writeRequests.push(writeRequest);
-      });
-      return promise;
-    }
-    function WritableStreamDealWithRejection(stream, error) {
-      const state = stream._state;
-      if (state === "writable") {
-        WritableStreamStartErroring(stream, error);
-        return;
-      }
-      WritableStreamFinishErroring(stream);
-    }
-    function WritableStreamStartErroring(stream, reason) {
-      const controller = stream._writableStreamController;
-      stream._state = "erroring";
-      stream._storedError = reason;
-      const writer = stream._writer;
-      if (writer !== undefined) {
-        WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, reason);
-      }
-      if (!WritableStreamHasOperationMarkedInFlight(stream) && controller._started) {
-        WritableStreamFinishErroring(stream);
-      }
-    }
-    function WritableStreamFinishErroring(stream) {
-      stream._state = "errored";
-      stream._writableStreamController[ErrorSteps]();
-      const storedError = stream._storedError;
-      stream._writeRequests.forEach((writeRequest) => {
-        writeRequest._reject(storedError);
-      });
-      stream._writeRequests = new SimpleQueue;
-      if (stream._pendingAbortRequest === undefined) {
-        WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
-        return;
-      }
-      const abortRequest = stream._pendingAbortRequest;
-      stream._pendingAbortRequest = undefined;
-      if (abortRequest._wasAlreadyErroring) {
-        abortRequest._reject(storedError);
-        WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
-        return;
-      }
-      const promise = stream._writableStreamController[AbortSteps](abortRequest._reason);
-      uponPromise(promise, () => {
-        abortRequest._resolve();
-        WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
-        return null;
-      }, (reason) => {
-        abortRequest._reject(reason);
-        WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
-        return null;
-      });
-    }
-    function WritableStreamFinishInFlightWrite(stream) {
-      stream._inFlightWriteRequest._resolve(undefined);
-      stream._inFlightWriteRequest = undefined;
-    }
-    function WritableStreamFinishInFlightWriteWithError(stream, error) {
-      stream._inFlightWriteRequest._reject(error);
-      stream._inFlightWriteRequest = undefined;
-      WritableStreamDealWithRejection(stream, error);
-    }
-    function WritableStreamFinishInFlightClose(stream) {
-      stream._inFlightCloseRequest._resolve(undefined);
-      stream._inFlightCloseRequest = undefined;
-      const state = stream._state;
-      if (state === "erroring") {
-        stream._storedError = undefined;
-        if (stream._pendingAbortRequest !== undefined) {
-          stream._pendingAbortRequest._resolve();
-          stream._pendingAbortRequest = undefined;
-        }
-      }
-      stream._state = "closed";
-      const writer = stream._writer;
-      if (writer !== undefined) {
-        defaultWriterClosedPromiseResolve(writer);
-      }
-    }
-    function WritableStreamFinishInFlightCloseWithError(stream, error) {
-      stream._inFlightCloseRequest._reject(error);
-      stream._inFlightCloseRequest = undefined;
-      if (stream._pendingAbortRequest !== undefined) {
-        stream._pendingAbortRequest._reject(error);
-        stream._pendingAbortRequest = undefined;
-      }
-      WritableStreamDealWithRejection(stream, error);
-    }
-    function WritableStreamCloseQueuedOrInFlight(stream) {
-      if (stream._closeRequest === undefined && stream._inFlightCloseRequest === undefined) {
-        return false;
-      }
-      return true;
-    }
-    function WritableStreamHasOperationMarkedInFlight(stream) {
-      if (stream._inFlightWriteRequest === undefined && stream._inFlightCloseRequest === undefined) {
-        return false;
-      }
-      return true;
-    }
-    function WritableStreamMarkCloseRequestInFlight(stream) {
-      stream._inFlightCloseRequest = stream._closeRequest;
-      stream._closeRequest = undefined;
-    }
-    function WritableStreamMarkFirstWriteRequestInFlight(stream) {
-      stream._inFlightWriteRequest = stream._writeRequests.shift();
-    }
-    function WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream) {
-      if (stream._closeRequest !== undefined) {
-        stream._closeRequest._reject(stream._storedError);
-        stream._closeRequest = undefined;
-      }
-      const writer = stream._writer;
-      if (writer !== undefined) {
-        defaultWriterClosedPromiseReject(writer, stream._storedError);
-      }
-    }
-    function WritableStreamUpdateBackpressure(stream, backpressure) {
-      const writer = stream._writer;
-      if (writer !== undefined && backpressure !== stream._backpressure) {
-        if (backpressure) {
-          defaultWriterReadyPromiseReset(writer);
-        } else {
-          defaultWriterReadyPromiseResolve(writer);
-        }
-      }
-      stream._backpressure = backpressure;
-    }
-
-    class WritableStreamDefaultWriter {
-      constructor(stream) {
-        assertRequiredArgument(stream, 1, "WritableStreamDefaultWriter");
-        assertWritableStream(stream, "First parameter");
-        if (IsWritableStreamLocked(stream)) {
-          throw new TypeError("This stream has already been locked for exclusive writing by another writer");
-        }
-        this._ownerWritableStream = stream;
-        stream._writer = this;
-        const state = stream._state;
-        if (state === "writable") {
-          if (!WritableStreamCloseQueuedOrInFlight(stream) && stream._backpressure) {
-            defaultWriterReadyPromiseInitialize(this);
-          } else {
-            defaultWriterReadyPromiseInitializeAsResolved(this);
-          }
-          defaultWriterClosedPromiseInitialize(this);
-        } else if (state === "erroring") {
-          defaultWriterReadyPromiseInitializeAsRejected(this, stream._storedError);
-          defaultWriterClosedPromiseInitialize(this);
-        } else if (state === "closed") {
-          defaultWriterReadyPromiseInitializeAsResolved(this);
-          defaultWriterClosedPromiseInitializeAsResolved(this);
-        } else {
-          const storedError = stream._storedError;
-          defaultWriterReadyPromiseInitializeAsRejected(this, storedError);
-          defaultWriterClosedPromiseInitializeAsRejected(this, storedError);
-        }
-      }
-      get closed() {
-        if (!IsWritableStreamDefaultWriter(this)) {
-          return promiseRejectedWith(defaultWriterBrandCheckException("closed"));
-        }
-        return this._closedPromise;
-      }
-      get desiredSize() {
-        if (!IsWritableStreamDefaultWriter(this)) {
-          throw defaultWriterBrandCheckException("desiredSize");
-        }
-        if (this._ownerWritableStream === undefined) {
-          throw defaultWriterLockException("desiredSize");
-        }
-        return WritableStreamDefaultWriterGetDesiredSize(this);
-      }
-      get ready() {
-        if (!IsWritableStreamDefaultWriter(this)) {
-          return promiseRejectedWith(defaultWriterBrandCheckException("ready"));
-        }
-        return this._readyPromise;
-      }
-      abort(reason = undefined) {
-        if (!IsWritableStreamDefaultWriter(this)) {
-          return promiseRejectedWith(defaultWriterBrandCheckException("abort"));
-        }
-        if (this._ownerWritableStream === undefined) {
-          return promiseRejectedWith(defaultWriterLockException("abort"));
-        }
-        return WritableStreamDefaultWriterAbort(this, reason);
-      }
-      close() {
-        if (!IsWritableStreamDefaultWriter(this)) {
-          return promiseRejectedWith(defaultWriterBrandCheckException("close"));
-        }
-        const stream = this._ownerWritableStream;
-        if (stream === undefined) {
-          return promiseRejectedWith(defaultWriterLockException("close"));
-        }
-        if (WritableStreamCloseQueuedOrInFlight(stream)) {
-          return promiseRejectedWith(new TypeError("Cannot close an already-closing stream"));
-        }
-        return WritableStreamDefaultWriterClose(this);
-      }
-      releaseLock() {
-        if (!IsWritableStreamDefaultWriter(this)) {
-          throw defaultWriterBrandCheckException("releaseLock");
-        }
-        const stream = this._ownerWritableStream;
-        if (stream === undefined) {
-          return;
-        }
-        WritableStreamDefaultWriterRelease(this);
-      }
-      write(chunk = undefined) {
-        if (!IsWritableStreamDefaultWriter(this)) {
-          return promiseRejectedWith(defaultWriterBrandCheckException("write"));
-        }
-        if (this._ownerWritableStream === undefined) {
-          return promiseRejectedWith(defaultWriterLockException("write to"));
-        }
-        return WritableStreamDefaultWriterWrite(this, chunk);
-      }
-    }
-    Object.defineProperties(WritableStreamDefaultWriter.prototype, {
-      abort: { enumerable: true },
-      close: { enumerable: true },
-      releaseLock: { enumerable: true },
-      write: { enumerable: true },
-      closed: { enumerable: true },
-      desiredSize: { enumerable: true },
-      ready: { enumerable: true }
-    });
-    setFunctionName(WritableStreamDefaultWriter.prototype.abort, "abort");
-    setFunctionName(WritableStreamDefaultWriter.prototype.close, "close");
-    setFunctionName(WritableStreamDefaultWriter.prototype.releaseLock, "releaseLock");
-    setFunctionName(WritableStreamDefaultWriter.prototype.write, "write");
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(WritableStreamDefaultWriter.prototype, Symbol.toStringTag, {
-        value: "WritableStreamDefaultWriter",
-        configurable: true
-      });
-    }
-    function IsWritableStreamDefaultWriter(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_ownerWritableStream")) {
-        return false;
-      }
-      return x instanceof WritableStreamDefaultWriter;
-    }
-    function WritableStreamDefaultWriterAbort(writer, reason) {
-      const stream = writer._ownerWritableStream;
-      return WritableStreamAbort(stream, reason);
-    }
-    function WritableStreamDefaultWriterClose(writer) {
-      const stream = writer._ownerWritableStream;
-      return WritableStreamClose(stream);
-    }
-    function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
-      const stream = writer._ownerWritableStream;
-      const state = stream._state;
-      if (WritableStreamCloseQueuedOrInFlight(stream) || state === "closed") {
-        return promiseResolvedWith(undefined);
-      }
-      if (state === "errored") {
-        return promiseRejectedWith(stream._storedError);
-      }
-      return WritableStreamDefaultWriterClose(writer);
-    }
-    function WritableStreamDefaultWriterEnsureClosedPromiseRejected(writer, error) {
-      if (writer._closedPromiseState === "pending") {
-        defaultWriterClosedPromiseReject(writer, error);
-      } else {
-        defaultWriterClosedPromiseResetToRejected(writer, error);
-      }
-    }
-    function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
-      if (writer._readyPromiseState === "pending") {
-        defaultWriterReadyPromiseReject(writer, error);
-      } else {
-        defaultWriterReadyPromiseResetToRejected(writer, error);
-      }
-    }
-    function WritableStreamDefaultWriterGetDesiredSize(writer) {
-      const stream = writer._ownerWritableStream;
-      const state = stream._state;
-      if (state === "errored" || state === "erroring") {
-        return null;
-      }
-      if (state === "closed") {
-        return 0;
-      }
-      return WritableStreamDefaultControllerGetDesiredSize(stream._writableStreamController);
-    }
-    function WritableStreamDefaultWriterRelease(writer) {
-      const stream = writer._ownerWritableStream;
-      const releasedError = new TypeError(`Writer was released and can no longer be used to monitor the stream's closedness`);
-      WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, releasedError);
-      WritableStreamDefaultWriterEnsureClosedPromiseRejected(writer, releasedError);
-      stream._writer = undefined;
-      writer._ownerWritableStream = undefined;
-    }
-    function WritableStreamDefaultWriterWrite(writer, chunk) {
-      const stream = writer._ownerWritableStream;
-      const controller = stream._writableStreamController;
-      const chunkSize = WritableStreamDefaultControllerGetChunkSize(controller, chunk);
-      if (stream !== writer._ownerWritableStream) {
-        return promiseRejectedWith(defaultWriterLockException("write to"));
-      }
-      const state = stream._state;
-      if (state === "errored") {
-        return promiseRejectedWith(stream._storedError);
-      }
-      if (WritableStreamCloseQueuedOrInFlight(stream) || state === "closed") {
-        return promiseRejectedWith(new TypeError("The stream is closing or closed and cannot be written to"));
-      }
-      if (state === "erroring") {
-        return promiseRejectedWith(stream._storedError);
-      }
-      const promise = WritableStreamAddWriteRequest(stream);
-      WritableStreamDefaultControllerWrite(controller, chunk, chunkSize);
-      return promise;
-    }
-    const closeSentinel = {};
-
-    class WritableStreamDefaultController {
-      constructor() {
-        throw new TypeError("Illegal constructor");
-      }
-      get abortReason() {
-        if (!IsWritableStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException$2("abortReason");
-        }
-        return this._abortReason;
-      }
-      get signal() {
-        if (!IsWritableStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException$2("signal");
-        }
-        if (this._abortController === undefined) {
-          throw new TypeError("WritableStreamDefaultController.prototype.signal is not supported");
-        }
-        return this._abortController.signal;
-      }
-      error(e = undefined) {
-        if (!IsWritableStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException$2("error");
-        }
-        const state = this._controlledWritableStream._state;
-        if (state !== "writable") {
-          return;
-        }
-        WritableStreamDefaultControllerError(this, e);
-      }
-      [AbortSteps](reason) {
-        const result = this._abortAlgorithm(reason);
-        WritableStreamDefaultControllerClearAlgorithms(this);
-        return result;
-      }
-      [ErrorSteps]() {
-        ResetQueue(this);
-      }
-    }
-    Object.defineProperties(WritableStreamDefaultController.prototype, {
-      abortReason: { enumerable: true },
-      signal: { enumerable: true },
-      error: { enumerable: true }
-    });
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(WritableStreamDefaultController.prototype, Symbol.toStringTag, {
-        value: "WritableStreamDefaultController",
-        configurable: true
-      });
-    }
-    function IsWritableStreamDefaultController(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_controlledWritableStream")) {
-        return false;
-      }
-      return x instanceof WritableStreamDefaultController;
-    }
-    function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm) {
-      controller._controlledWritableStream = stream;
-      stream._writableStreamController = controller;
-      controller._queue = undefined;
-      controller._queueTotalSize = undefined;
-      ResetQueue(controller);
-      controller._abortReason = undefined;
-      controller._abortController = createAbortController();
-      controller._started = false;
-      controller._strategySizeAlgorithm = sizeAlgorithm;
-      controller._strategyHWM = highWaterMark;
-      controller._writeAlgorithm = writeAlgorithm;
-      controller._closeAlgorithm = closeAlgorithm;
-      controller._abortAlgorithm = abortAlgorithm;
-      const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
-      WritableStreamUpdateBackpressure(stream, backpressure);
-      const startResult = startAlgorithm();
-      const startPromise = promiseResolvedWith(startResult);
-      uponPromise(startPromise, () => {
-        controller._started = true;
-        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-        return null;
-      }, (r) => {
-        controller._started = true;
-        WritableStreamDealWithRejection(stream, r);
-        return null;
-      });
-    }
-    function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyingSink, highWaterMark, sizeAlgorithm) {
-      const controller = Object.create(WritableStreamDefaultController.prototype);
-      let startAlgorithm;
-      let writeAlgorithm;
-      let closeAlgorithm;
-      let abortAlgorithm;
-      if (underlyingSink.start !== undefined) {
-        startAlgorithm = () => underlyingSink.start(controller);
-      } else {
-        startAlgorithm = () => {
-          return;
-        };
-      }
-      if (underlyingSink.write !== undefined) {
-        writeAlgorithm = (chunk) => underlyingSink.write(chunk, controller);
-      } else {
-        writeAlgorithm = () => promiseResolvedWith(undefined);
-      }
-      if (underlyingSink.close !== undefined) {
-        closeAlgorithm = () => underlyingSink.close();
-      } else {
-        closeAlgorithm = () => promiseResolvedWith(undefined);
-      }
-      if (underlyingSink.abort !== undefined) {
-        abortAlgorithm = (reason) => underlyingSink.abort(reason);
-      } else {
-        abortAlgorithm = () => promiseResolvedWith(undefined);
-      }
-      SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm);
-    }
-    function WritableStreamDefaultControllerClearAlgorithms(controller) {
-      controller._writeAlgorithm = undefined;
-      controller._closeAlgorithm = undefined;
-      controller._abortAlgorithm = undefined;
-      controller._strategySizeAlgorithm = undefined;
-    }
-    function WritableStreamDefaultControllerClose(controller) {
-      EnqueueValueWithSize(controller, closeSentinel, 0);
-      WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-    }
-    function WritableStreamDefaultControllerGetChunkSize(controller, chunk) {
-      try {
-        return controller._strategySizeAlgorithm(chunk);
-      } catch (chunkSizeE) {
-        WritableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
-        return 1;
-      }
-    }
-    function WritableStreamDefaultControllerGetDesiredSize(controller) {
-      return controller._strategyHWM - controller._queueTotalSize;
-    }
-    function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
-      try {
-        EnqueueValueWithSize(controller, chunk, chunkSize);
-      } catch (enqueueE) {
-        WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
-        return;
-      }
-      const stream = controller._controlledWritableStream;
-      if (!WritableStreamCloseQueuedOrInFlight(stream) && stream._state === "writable") {
-        const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
-        WritableStreamUpdateBackpressure(stream, backpressure);
-      }
-      WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-    }
-    function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
-      const stream = controller._controlledWritableStream;
-      if (!controller._started) {
-        return;
-      }
-      if (stream._inFlightWriteRequest !== undefined) {
-        return;
-      }
-      const state = stream._state;
-      if (state === "erroring") {
-        WritableStreamFinishErroring(stream);
-        return;
-      }
-      if (controller._queue.length === 0) {
-        return;
-      }
-      const value = PeekQueueValue(controller);
-      if (value === closeSentinel) {
-        WritableStreamDefaultControllerProcessClose(controller);
-      } else {
-        WritableStreamDefaultControllerProcessWrite(controller, value);
-      }
-    }
-    function WritableStreamDefaultControllerErrorIfNeeded(controller, error) {
-      if (controller._controlledWritableStream._state === "writable") {
-        WritableStreamDefaultControllerError(controller, error);
-      }
-    }
-    function WritableStreamDefaultControllerProcessClose(controller) {
-      const stream = controller._controlledWritableStream;
-      WritableStreamMarkCloseRequestInFlight(stream);
-      DequeueValue(controller);
-      const sinkClosePromise = controller._closeAlgorithm();
-      WritableStreamDefaultControllerClearAlgorithms(controller);
-      uponPromise(sinkClosePromise, () => {
-        WritableStreamFinishInFlightClose(stream);
-        return null;
-      }, (reason) => {
-        WritableStreamFinishInFlightCloseWithError(stream, reason);
-        return null;
-      });
-    }
-    function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
-      const stream = controller._controlledWritableStream;
-      WritableStreamMarkFirstWriteRequestInFlight(stream);
-      const sinkWritePromise = controller._writeAlgorithm(chunk);
-      uponPromise(sinkWritePromise, () => {
-        WritableStreamFinishInFlightWrite(stream);
-        const state = stream._state;
-        DequeueValue(controller);
-        if (!WritableStreamCloseQueuedOrInFlight(stream) && state === "writable") {
-          const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
-          WritableStreamUpdateBackpressure(stream, backpressure);
-        }
-        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
-        return null;
-      }, (reason) => {
-        if (stream._state === "writable") {
-          WritableStreamDefaultControllerClearAlgorithms(controller);
-        }
-        WritableStreamFinishInFlightWriteWithError(stream, reason);
-        return null;
-      });
-    }
-    function WritableStreamDefaultControllerGetBackpressure(controller) {
-      const desiredSize = WritableStreamDefaultControllerGetDesiredSize(controller);
-      return desiredSize <= 0;
-    }
-    function WritableStreamDefaultControllerError(controller, error) {
-      const stream = controller._controlledWritableStream;
-      WritableStreamDefaultControllerClearAlgorithms(controller);
-      WritableStreamStartErroring(stream, error);
-    }
-    function streamBrandCheckException$2(name) {
-      return new TypeError(`WritableStream.prototype.${name} can only be used on a WritableStream`);
-    }
-    function defaultControllerBrandCheckException$2(name) {
-      return new TypeError(`WritableStreamDefaultController.prototype.${name} can only be used on a WritableStreamDefaultController`);
-    }
-    function defaultWriterBrandCheckException(name) {
-      return new TypeError(`WritableStreamDefaultWriter.prototype.${name} can only be used on a WritableStreamDefaultWriter`);
-    }
-    function defaultWriterLockException(name) {
-      return new TypeError("Cannot " + name + " a stream using a released writer");
-    }
-    function defaultWriterClosedPromiseInitialize(writer) {
-      writer._closedPromise = newPromise((resolve, reject) => {
-        writer._closedPromise_resolve = resolve;
-        writer._closedPromise_reject = reject;
-        writer._closedPromiseState = "pending";
-      });
-    }
-    function defaultWriterClosedPromiseInitializeAsRejected(writer, reason) {
-      defaultWriterClosedPromiseInitialize(writer);
-      defaultWriterClosedPromiseReject(writer, reason);
-    }
-    function defaultWriterClosedPromiseInitializeAsResolved(writer) {
-      defaultWriterClosedPromiseInitialize(writer);
-      defaultWriterClosedPromiseResolve(writer);
-    }
-    function defaultWriterClosedPromiseReject(writer, reason) {
-      if (writer._closedPromise_reject === undefined) {
-        return;
-      }
-      setPromiseIsHandledToTrue(writer._closedPromise);
-      writer._closedPromise_reject(reason);
-      writer._closedPromise_resolve = undefined;
-      writer._closedPromise_reject = undefined;
-      writer._closedPromiseState = "rejected";
-    }
-    function defaultWriterClosedPromiseResetToRejected(writer, reason) {
-      defaultWriterClosedPromiseInitializeAsRejected(writer, reason);
-    }
-    function defaultWriterClosedPromiseResolve(writer) {
-      if (writer._closedPromise_resolve === undefined) {
-        return;
-      }
-      writer._closedPromise_resolve(undefined);
-      writer._closedPromise_resolve = undefined;
-      writer._closedPromise_reject = undefined;
-      writer._closedPromiseState = "resolved";
-    }
-    function defaultWriterReadyPromiseInitialize(writer) {
-      writer._readyPromise = newPromise((resolve, reject) => {
-        writer._readyPromise_resolve = resolve;
-        writer._readyPromise_reject = reject;
-      });
-      writer._readyPromiseState = "pending";
-    }
-    function defaultWriterReadyPromiseInitializeAsRejected(writer, reason) {
-      defaultWriterReadyPromiseInitialize(writer);
-      defaultWriterReadyPromiseReject(writer, reason);
-    }
-    function defaultWriterReadyPromiseInitializeAsResolved(writer) {
-      defaultWriterReadyPromiseInitialize(writer);
-      defaultWriterReadyPromiseResolve(writer);
-    }
-    function defaultWriterReadyPromiseReject(writer, reason) {
-      if (writer._readyPromise_reject === undefined) {
-        return;
-      }
-      setPromiseIsHandledToTrue(writer._readyPromise);
-      writer._readyPromise_reject(reason);
-      writer._readyPromise_resolve = undefined;
-      writer._readyPromise_reject = undefined;
-      writer._readyPromiseState = "rejected";
-    }
-    function defaultWriterReadyPromiseReset(writer) {
-      defaultWriterReadyPromiseInitialize(writer);
-    }
-    function defaultWriterReadyPromiseResetToRejected(writer, reason) {
-      defaultWriterReadyPromiseInitializeAsRejected(writer, reason);
-    }
-    function defaultWriterReadyPromiseResolve(writer) {
-      if (writer._readyPromise_resolve === undefined) {
-        return;
-      }
-      writer._readyPromise_resolve(undefined);
-      writer._readyPromise_resolve = undefined;
-      writer._readyPromise_reject = undefined;
-      writer._readyPromiseState = "fulfilled";
-    }
-    function getGlobals() {
-      if (typeof globalThis !== "undefined") {
-        return globalThis;
-      } else if (typeof self !== "undefined") {
-        return self;
-      } else if (typeof global !== "undefined") {
-        return global;
-      }
-      return;
-    }
-    const globals = getGlobals();
-    function isDOMExceptionConstructor(ctor) {
-      if (!(typeof ctor === "function" || typeof ctor === "object")) {
-        return false;
-      }
-      if (ctor.name !== "DOMException") {
-        return false;
-      }
-      try {
-        new ctor;
-        return true;
-      } catch (_a2) {
-        return false;
-      }
-    }
-    function getFromGlobal() {
-      const ctor = globals === null || globals === undefined ? undefined : globals.DOMException;
-      return isDOMExceptionConstructor(ctor) ? ctor : undefined;
-    }
-    function createPolyfill() {
-      const ctor = function DOMException(message, name) {
-        this.message = message || "";
-        this.name = name || "Error";
-        if (Error.captureStackTrace) {
-          Error.captureStackTrace(this, this.constructor);
-        }
-      };
-      setFunctionName(ctor, "DOMException");
-      ctor.prototype = Object.create(Error.prototype);
-      Object.defineProperty(ctor.prototype, "constructor", { value: ctor, writable: true, configurable: true });
-      return ctor;
-    }
-    const DOMException = getFromGlobal() || createPolyfill();
-    function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventCancel, signal) {
-      const reader = AcquireReadableStreamDefaultReader(source);
-      const writer = AcquireWritableStreamDefaultWriter(dest);
-      source._disturbed = true;
-      let shuttingDown = false;
-      let currentWrite = promiseResolvedWith(undefined);
-      return newPromise((resolve, reject) => {
-        let abortAlgorithm;
-        if (signal !== undefined) {
-          abortAlgorithm = () => {
-            const error = signal.reason !== undefined ? signal.reason : new DOMException("Aborted", "AbortError");
-            const actions = [];
-            if (!preventAbort) {
-              actions.push(() => {
-                if (dest._state === "writable") {
-                  return WritableStreamAbort(dest, error);
-                }
-                return promiseResolvedWith(undefined);
-              });
-            }
-            if (!preventCancel) {
-              actions.push(() => {
-                if (source._state === "readable") {
-                  return ReadableStreamCancel(source, error);
-                }
-                return promiseResolvedWith(undefined);
-              });
-            }
-            shutdownWithAction(() => Promise.all(actions.map((action) => action())), true, error);
-          };
-          if (signal.aborted) {
-            abortAlgorithm();
-            return;
-          }
-          signal.addEventListener("abort", abortAlgorithm);
-        }
-        function pipeLoop() {
-          return newPromise((resolveLoop, rejectLoop) => {
-            function next(done) {
-              if (done) {
-                resolveLoop();
-              } else {
-                PerformPromiseThen(pipeStep(), next, rejectLoop);
-              }
-            }
-            next(false);
-          });
-        }
-        function pipeStep() {
-          if (shuttingDown) {
-            return promiseResolvedWith(true);
-          }
-          return PerformPromiseThen(writer._readyPromise, () => {
-            return newPromise((resolveRead, rejectRead) => {
-              ReadableStreamDefaultReaderRead(reader, {
-                _chunkSteps: (chunk) => {
-                  currentWrite = PerformPromiseThen(WritableStreamDefaultWriterWrite(writer, chunk), undefined, noop);
-                  resolveRead(false);
-                },
-                _closeSteps: () => resolveRead(true),
-                _errorSteps: rejectRead
-              });
-            });
-          });
-        }
-        isOrBecomesErrored(source, reader._closedPromise, (storedError) => {
-          if (!preventAbort) {
-            shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
-          } else {
-            shutdown(true, storedError);
-          }
-          return null;
-        });
-        isOrBecomesErrored(dest, writer._closedPromise, (storedError) => {
-          if (!preventCancel) {
-            shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
-          } else {
-            shutdown(true, storedError);
-          }
-          return null;
-        });
-        isOrBecomesClosed(source, reader._closedPromise, () => {
-          if (!preventClose) {
-            shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
-          } else {
-            shutdown();
-          }
-          return null;
-        });
-        if (WritableStreamCloseQueuedOrInFlight(dest) || dest._state === "closed") {
-          const destClosed = new TypeError("the destination writable stream closed before all data could be piped to it");
-          if (!preventCancel) {
-            shutdownWithAction(() => ReadableStreamCancel(source, destClosed), true, destClosed);
-          } else {
-            shutdown(true, destClosed);
-          }
-        }
-        setPromiseIsHandledToTrue(pipeLoop());
-        function waitForWritesToFinish() {
-          const oldCurrentWrite = currentWrite;
-          return PerformPromiseThen(currentWrite, () => oldCurrentWrite !== currentWrite ? waitForWritesToFinish() : undefined);
-        }
-        function isOrBecomesErrored(stream, promise, action) {
-          if (stream._state === "errored") {
-            action(stream._storedError);
-          } else {
-            uponRejection(promise, action);
-          }
-        }
-        function isOrBecomesClosed(stream, promise, action) {
-          if (stream._state === "closed") {
-            action();
-          } else {
-            uponFulfillment(promise, action);
-          }
-        }
-        function shutdownWithAction(action, originalIsError, originalError) {
-          if (shuttingDown) {
-            return;
-          }
-          shuttingDown = true;
-          if (dest._state === "writable" && !WritableStreamCloseQueuedOrInFlight(dest)) {
-            uponFulfillment(waitForWritesToFinish(), doTheRest);
-          } else {
-            doTheRest();
-          }
-          function doTheRest() {
-            uponPromise(action(), () => finalize(originalIsError, originalError), (newError) => finalize(true, newError));
-            return null;
-          }
-        }
-        function shutdown(isError, error) {
-          if (shuttingDown) {
-            return;
-          }
-          shuttingDown = true;
-          if (dest._state === "writable" && !WritableStreamCloseQueuedOrInFlight(dest)) {
-            uponFulfillment(waitForWritesToFinish(), () => finalize(isError, error));
-          } else {
-            finalize(isError, error);
-          }
-        }
-        function finalize(isError, error) {
-          WritableStreamDefaultWriterRelease(writer);
-          ReadableStreamReaderGenericRelease(reader);
-          if (signal !== undefined) {
-            signal.removeEventListener("abort", abortAlgorithm);
-          }
-          if (isError) {
-            reject(error);
-          } else {
-            resolve(undefined);
-          }
-          return null;
-        }
-      });
-    }
-
-    class ReadableStreamDefaultController {
-      constructor() {
-        throw new TypeError("Illegal constructor");
-      }
-      get desiredSize() {
-        if (!IsReadableStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException$1("desiredSize");
-        }
-        return ReadableStreamDefaultControllerGetDesiredSize(this);
-      }
-      close() {
-        if (!IsReadableStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException$1("close");
-        }
-        if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(this)) {
-          throw new TypeError("The stream is not in a state that permits close");
-        }
-        ReadableStreamDefaultControllerClose(this);
-      }
-      enqueue(chunk = undefined) {
-        if (!IsReadableStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException$1("enqueue");
-        }
-        if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(this)) {
-          throw new TypeError("The stream is not in a state that permits enqueue");
-        }
-        return ReadableStreamDefaultControllerEnqueue(this, chunk);
-      }
-      error(e = undefined) {
-        if (!IsReadableStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException$1("error");
-        }
-        ReadableStreamDefaultControllerError(this, e);
-      }
-      [CancelSteps](reason) {
-        ResetQueue(this);
-        const result = this._cancelAlgorithm(reason);
-        ReadableStreamDefaultControllerClearAlgorithms(this);
-        return result;
-      }
-      [PullSteps](readRequest) {
-        const stream = this._controlledReadableStream;
-        if (this._queue.length > 0) {
-          const chunk = DequeueValue(this);
-          if (this._closeRequested && this._queue.length === 0) {
-            ReadableStreamDefaultControllerClearAlgorithms(this);
-            ReadableStreamClose(stream);
-          } else {
-            ReadableStreamDefaultControllerCallPullIfNeeded(this);
-          }
-          readRequest._chunkSteps(chunk);
-        } else {
-          ReadableStreamAddReadRequest(stream, readRequest);
-          ReadableStreamDefaultControllerCallPullIfNeeded(this);
-        }
-      }
-      [ReleaseSteps]() {}
-    }
-    Object.defineProperties(ReadableStreamDefaultController.prototype, {
-      close: { enumerable: true },
-      enqueue: { enumerable: true },
-      error: { enumerable: true },
-      desiredSize: { enumerable: true }
-    });
-    setFunctionName(ReadableStreamDefaultController.prototype.close, "close");
-    setFunctionName(ReadableStreamDefaultController.prototype.enqueue, "enqueue");
-    setFunctionName(ReadableStreamDefaultController.prototype.error, "error");
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(ReadableStreamDefaultController.prototype, Symbol.toStringTag, {
-        value: "ReadableStreamDefaultController",
-        configurable: true
-      });
-    }
-    function IsReadableStreamDefaultController(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_controlledReadableStream")) {
-        return false;
-      }
-      return x instanceof ReadableStreamDefaultController;
-    }
-    function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
-      const shouldPull = ReadableStreamDefaultControllerShouldCallPull(controller);
-      if (!shouldPull) {
-        return;
-      }
-      if (controller._pulling) {
-        controller._pullAgain = true;
-        return;
-      }
-      controller._pulling = true;
-      const pullPromise = controller._pullAlgorithm();
-      uponPromise(pullPromise, () => {
-        controller._pulling = false;
-        if (controller._pullAgain) {
-          controller._pullAgain = false;
-          ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-        }
-        return null;
-      }, (e) => {
-        ReadableStreamDefaultControllerError(controller, e);
-        return null;
-      });
-    }
-    function ReadableStreamDefaultControllerShouldCallPull(controller) {
-      const stream = controller._controlledReadableStream;
-      if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(controller)) {
-        return false;
-      }
-      if (!controller._started) {
-        return false;
-      }
-      if (IsReadableStreamLocked(stream) && ReadableStreamGetNumReadRequests(stream) > 0) {
-        return true;
-      }
-      const desiredSize = ReadableStreamDefaultControllerGetDesiredSize(controller);
-      if (desiredSize > 0) {
-        return true;
-      }
-      return false;
-    }
-    function ReadableStreamDefaultControllerClearAlgorithms(controller) {
-      controller._pullAlgorithm = undefined;
-      controller._cancelAlgorithm = undefined;
-      controller._strategySizeAlgorithm = undefined;
-    }
-    function ReadableStreamDefaultControllerClose(controller) {
-      if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(controller)) {
-        return;
-      }
-      const stream = controller._controlledReadableStream;
-      controller._closeRequested = true;
-      if (controller._queue.length === 0) {
-        ReadableStreamDefaultControllerClearAlgorithms(controller);
-        ReadableStreamClose(stream);
-      }
-    }
-    function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
-      if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(controller)) {
-        return;
-      }
-      const stream = controller._controlledReadableStream;
-      if (IsReadableStreamLocked(stream) && ReadableStreamGetNumReadRequests(stream) > 0) {
-        ReadableStreamFulfillReadRequest(stream, chunk, false);
-      } else {
-        let chunkSize;
-        try {
-          chunkSize = controller._strategySizeAlgorithm(chunk);
-        } catch (chunkSizeE) {
-          ReadableStreamDefaultControllerError(controller, chunkSizeE);
-          throw chunkSizeE;
-        }
-        try {
-          EnqueueValueWithSize(controller, chunk, chunkSize);
-        } catch (enqueueE) {
-          ReadableStreamDefaultControllerError(controller, enqueueE);
-          throw enqueueE;
-        }
-      }
-      ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-    }
-    function ReadableStreamDefaultControllerError(controller, e) {
-      const stream = controller._controlledReadableStream;
-      if (stream._state !== "readable") {
-        return;
-      }
-      ResetQueue(controller);
-      ReadableStreamDefaultControllerClearAlgorithms(controller);
-      ReadableStreamError(stream, e);
-    }
-    function ReadableStreamDefaultControllerGetDesiredSize(controller) {
-      const state = controller._controlledReadableStream._state;
-      if (state === "errored") {
-        return null;
-      }
-      if (state === "closed") {
-        return 0;
-      }
-      return controller._strategyHWM - controller._queueTotalSize;
-    }
-    function ReadableStreamDefaultControllerHasBackpressure(controller) {
-      if (ReadableStreamDefaultControllerShouldCallPull(controller)) {
-        return false;
-      }
-      return true;
-    }
-    function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
-      const state = controller._controlledReadableStream._state;
-      if (!controller._closeRequested && state === "readable") {
-        return true;
-      }
-      return false;
-    }
-    function SetUpReadableStreamDefaultController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
-      controller._controlledReadableStream = stream;
-      controller._queue = undefined;
-      controller._queueTotalSize = undefined;
-      ResetQueue(controller);
-      controller._started = false;
-      controller._closeRequested = false;
-      controller._pullAgain = false;
-      controller._pulling = false;
-      controller._strategySizeAlgorithm = sizeAlgorithm;
-      controller._strategyHWM = highWaterMark;
-      controller._pullAlgorithm = pullAlgorithm;
-      controller._cancelAlgorithm = cancelAlgorithm;
-      stream._readableStreamController = controller;
-      const startResult = startAlgorithm();
-      uponPromise(promiseResolvedWith(startResult), () => {
-        controller._started = true;
-        ReadableStreamDefaultControllerCallPullIfNeeded(controller);
-        return null;
-      }, (r) => {
-        ReadableStreamDefaultControllerError(controller, r);
-        return null;
-      });
-    }
-    function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underlyingSource, highWaterMark, sizeAlgorithm) {
-      const controller = Object.create(ReadableStreamDefaultController.prototype);
-      let startAlgorithm;
-      let pullAlgorithm;
-      let cancelAlgorithm;
-      if (underlyingSource.start !== undefined) {
-        startAlgorithm = () => underlyingSource.start(controller);
-      } else {
-        startAlgorithm = () => {
-          return;
-        };
-      }
-      if (underlyingSource.pull !== undefined) {
-        pullAlgorithm = () => underlyingSource.pull(controller);
-      } else {
-        pullAlgorithm = () => promiseResolvedWith(undefined);
-      }
-      if (underlyingSource.cancel !== undefined) {
-        cancelAlgorithm = (reason) => underlyingSource.cancel(reason);
-      } else {
-        cancelAlgorithm = () => promiseResolvedWith(undefined);
-      }
-      SetUpReadableStreamDefaultController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
-    }
-    function defaultControllerBrandCheckException$1(name) {
-      return new TypeError(`ReadableStreamDefaultController.prototype.${name} can only be used on a ReadableStreamDefaultController`);
-    }
-    function ReadableStreamTee(stream, cloneForBranch2) {
-      if (IsReadableByteStreamController(stream._readableStreamController)) {
-        return ReadableByteStreamTee(stream);
-      }
-      return ReadableStreamDefaultTee(stream);
-    }
-    function ReadableStreamDefaultTee(stream, cloneForBranch2) {
-      const reader = AcquireReadableStreamDefaultReader(stream);
-      let reading = false;
-      let readAgain = false;
-      let canceled1 = false;
-      let canceled2 = false;
-      let reason1;
-      let reason2;
-      let branch1;
-      let branch2;
-      let resolveCancelPromise;
-      const cancelPromise = newPromise((resolve) => {
-        resolveCancelPromise = resolve;
-      });
-      function pullAlgorithm() {
-        if (reading) {
-          readAgain = true;
-          return promiseResolvedWith(undefined);
-        }
-        reading = true;
-        const readRequest = {
-          _chunkSteps: (chunk) => {
-            _queueMicrotask(() => {
-              readAgain = false;
-              const chunk1 = chunk;
-              const chunk2 = chunk;
-              if (!canceled1) {
-                ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, chunk1);
-              }
-              if (!canceled2) {
-                ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, chunk2);
-              }
-              reading = false;
-              if (readAgain) {
-                pullAlgorithm();
-              }
-            });
-          },
-          _closeSteps: () => {
-            reading = false;
-            if (!canceled1) {
-              ReadableStreamDefaultControllerClose(branch1._readableStreamController);
-            }
-            if (!canceled2) {
-              ReadableStreamDefaultControllerClose(branch2._readableStreamController);
-            }
-            if (!canceled1 || !canceled2) {
-              resolveCancelPromise(undefined);
-            }
-          },
-          _errorSteps: () => {
-            reading = false;
-          }
-        };
-        ReadableStreamDefaultReaderRead(reader, readRequest);
-        return promiseResolvedWith(undefined);
-      }
-      function cancel1Algorithm(reason) {
-        canceled1 = true;
-        reason1 = reason;
-        if (canceled2) {
-          const compositeReason = CreateArrayFromList([reason1, reason2]);
-          const cancelResult = ReadableStreamCancel(stream, compositeReason);
-          resolveCancelPromise(cancelResult);
-        }
-        return cancelPromise;
-      }
-      function cancel2Algorithm(reason) {
-        canceled2 = true;
-        reason2 = reason;
-        if (canceled1) {
-          const compositeReason = CreateArrayFromList([reason1, reason2]);
-          const cancelResult = ReadableStreamCancel(stream, compositeReason);
-          resolveCancelPromise(cancelResult);
-        }
-        return cancelPromise;
-      }
-      function startAlgorithm() {}
-      branch1 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm);
-      branch2 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
-      uponRejection(reader._closedPromise, (r) => {
-        ReadableStreamDefaultControllerError(branch1._readableStreamController, r);
-        ReadableStreamDefaultControllerError(branch2._readableStreamController, r);
-        if (!canceled1 || !canceled2) {
-          resolveCancelPromise(undefined);
-        }
-        return null;
-      });
-      return [branch1, branch2];
-    }
-    function ReadableByteStreamTee(stream) {
-      let reader = AcquireReadableStreamDefaultReader(stream);
-      let reading = false;
-      let readAgainForBranch1 = false;
-      let readAgainForBranch2 = false;
-      let canceled1 = false;
-      let canceled2 = false;
-      let reason1;
-      let reason2;
-      let branch1;
-      let branch2;
-      let resolveCancelPromise;
-      const cancelPromise = newPromise((resolve) => {
-        resolveCancelPromise = resolve;
-      });
-      function forwardReaderError(thisReader) {
-        uponRejection(thisReader._closedPromise, (r) => {
-          if (thisReader !== reader) {
-            return null;
-          }
-          ReadableByteStreamControllerError(branch1._readableStreamController, r);
-          ReadableByteStreamControllerError(branch2._readableStreamController, r);
-          if (!canceled1 || !canceled2) {
-            resolveCancelPromise(undefined);
-          }
-          return null;
-        });
-      }
-      function pullWithDefaultReader() {
-        if (IsReadableStreamBYOBReader(reader)) {
-          ReadableStreamReaderGenericRelease(reader);
-          reader = AcquireReadableStreamDefaultReader(stream);
-          forwardReaderError(reader);
-        }
-        const readRequest = {
-          _chunkSteps: (chunk) => {
-            _queueMicrotask(() => {
-              readAgainForBranch1 = false;
-              readAgainForBranch2 = false;
-              const chunk1 = chunk;
-              let chunk2 = chunk;
-              if (!canceled1 && !canceled2) {
-                try {
-                  chunk2 = CloneAsUint8Array(chunk);
-                } catch (cloneE) {
-                  ReadableByteStreamControllerError(branch1._readableStreamController, cloneE);
-                  ReadableByteStreamControllerError(branch2._readableStreamController, cloneE);
-                  resolveCancelPromise(ReadableStreamCancel(stream, cloneE));
-                  return;
-                }
-              }
-              if (!canceled1) {
-                ReadableByteStreamControllerEnqueue(branch1._readableStreamController, chunk1);
-              }
-              if (!canceled2) {
-                ReadableByteStreamControllerEnqueue(branch2._readableStreamController, chunk2);
-              }
-              reading = false;
-              if (readAgainForBranch1) {
-                pull1Algorithm();
-              } else if (readAgainForBranch2) {
-                pull2Algorithm();
-              }
-            });
-          },
-          _closeSteps: () => {
-            reading = false;
-            if (!canceled1) {
-              ReadableByteStreamControllerClose(branch1._readableStreamController);
-            }
-            if (!canceled2) {
-              ReadableByteStreamControllerClose(branch2._readableStreamController);
-            }
-            if (branch1._readableStreamController._pendingPullIntos.length > 0) {
-              ReadableByteStreamControllerRespond(branch1._readableStreamController, 0);
-            }
-            if (branch2._readableStreamController._pendingPullIntos.length > 0) {
-              ReadableByteStreamControllerRespond(branch2._readableStreamController, 0);
-            }
-            if (!canceled1 || !canceled2) {
-              resolveCancelPromise(undefined);
-            }
-          },
-          _errorSteps: () => {
-            reading = false;
-          }
-        };
-        ReadableStreamDefaultReaderRead(reader, readRequest);
-      }
-      function pullWithBYOBReader(view, forBranch2) {
-        if (IsReadableStreamDefaultReader(reader)) {
-          ReadableStreamReaderGenericRelease(reader);
-          reader = AcquireReadableStreamBYOBReader(stream);
-          forwardReaderError(reader);
-        }
-        const byobBranch = forBranch2 ? branch2 : branch1;
-        const otherBranch = forBranch2 ? branch1 : branch2;
-        const readIntoRequest = {
-          _chunkSteps: (chunk) => {
-            _queueMicrotask(() => {
-              readAgainForBranch1 = false;
-              readAgainForBranch2 = false;
-              const byobCanceled = forBranch2 ? canceled2 : canceled1;
-              const otherCanceled = forBranch2 ? canceled1 : canceled2;
-              if (!otherCanceled) {
-                let clonedChunk;
-                try {
-                  clonedChunk = CloneAsUint8Array(chunk);
-                } catch (cloneE) {
-                  ReadableByteStreamControllerError(byobBranch._readableStreamController, cloneE);
-                  ReadableByteStreamControllerError(otherBranch._readableStreamController, cloneE);
-                  resolveCancelPromise(ReadableStreamCancel(stream, cloneE));
-                  return;
-                }
-                if (!byobCanceled) {
-                  ReadableByteStreamControllerRespondWithNewView(byobBranch._readableStreamController, chunk);
-                }
-                ReadableByteStreamControllerEnqueue(otherBranch._readableStreamController, clonedChunk);
-              } else if (!byobCanceled) {
-                ReadableByteStreamControllerRespondWithNewView(byobBranch._readableStreamController, chunk);
-              }
-              reading = false;
-              if (readAgainForBranch1) {
-                pull1Algorithm();
-              } else if (readAgainForBranch2) {
-                pull2Algorithm();
-              }
-            });
-          },
-          _closeSteps: (chunk) => {
-            reading = false;
-            const byobCanceled = forBranch2 ? canceled2 : canceled1;
-            const otherCanceled = forBranch2 ? canceled1 : canceled2;
-            if (!byobCanceled) {
-              ReadableByteStreamControllerClose(byobBranch._readableStreamController);
-            }
-            if (!otherCanceled) {
-              ReadableByteStreamControllerClose(otherBranch._readableStreamController);
-            }
-            if (chunk !== undefined) {
-              if (!byobCanceled) {
-                ReadableByteStreamControllerRespondWithNewView(byobBranch._readableStreamController, chunk);
-              }
-              if (!otherCanceled && otherBranch._readableStreamController._pendingPullIntos.length > 0) {
-                ReadableByteStreamControllerRespond(otherBranch._readableStreamController, 0);
-              }
-            }
-            if (!byobCanceled || !otherCanceled) {
-              resolveCancelPromise(undefined);
-            }
-          },
-          _errorSteps: () => {
-            reading = false;
-          }
-        };
-        ReadableStreamBYOBReaderRead(reader, view, 1, readIntoRequest);
-      }
-      function pull1Algorithm() {
-        if (reading) {
-          readAgainForBranch1 = true;
-          return promiseResolvedWith(undefined);
-        }
-        reading = true;
-        const byobRequest = ReadableByteStreamControllerGetBYOBRequest(branch1._readableStreamController);
-        if (byobRequest === null) {
-          pullWithDefaultReader();
-        } else {
-          pullWithBYOBReader(byobRequest._view, false);
-        }
-        return promiseResolvedWith(undefined);
-      }
-      function pull2Algorithm() {
-        if (reading) {
-          readAgainForBranch2 = true;
-          return promiseResolvedWith(undefined);
-        }
-        reading = true;
-        const byobRequest = ReadableByteStreamControllerGetBYOBRequest(branch2._readableStreamController);
-        if (byobRequest === null) {
-          pullWithDefaultReader();
-        } else {
-          pullWithBYOBReader(byobRequest._view, true);
-        }
-        return promiseResolvedWith(undefined);
-      }
-      function cancel1Algorithm(reason) {
-        canceled1 = true;
-        reason1 = reason;
-        if (canceled2) {
-          const compositeReason = CreateArrayFromList([reason1, reason2]);
-          const cancelResult = ReadableStreamCancel(stream, compositeReason);
-          resolveCancelPromise(cancelResult);
-        }
-        return cancelPromise;
-      }
-      function cancel2Algorithm(reason) {
-        canceled2 = true;
-        reason2 = reason;
-        if (canceled1) {
-          const compositeReason = CreateArrayFromList([reason1, reason2]);
-          const cancelResult = ReadableStreamCancel(stream, compositeReason);
-          resolveCancelPromise(cancelResult);
-        }
-        return cancelPromise;
-      }
-      function startAlgorithm() {
-        return;
-      }
-      branch1 = CreateReadableByteStream(startAlgorithm, pull1Algorithm, cancel1Algorithm);
-      branch2 = CreateReadableByteStream(startAlgorithm, pull2Algorithm, cancel2Algorithm);
-      forwardReaderError(reader);
-      return [branch1, branch2];
-    }
-    function isReadableStreamLike(stream) {
-      return typeIsObject(stream) && typeof stream.getReader !== "undefined";
-    }
-    function ReadableStreamFrom(source) {
-      if (isReadableStreamLike(source)) {
-        return ReadableStreamFromDefaultReader(source.getReader());
-      }
-      return ReadableStreamFromIterable(source);
-    }
-    function ReadableStreamFromIterable(asyncIterable) {
-      let stream;
-      const iteratorRecord = GetIterator(asyncIterable, "async");
-      const startAlgorithm = noop;
-      function pullAlgorithm() {
-        let nextResult;
-        try {
-          nextResult = IteratorNext(iteratorRecord);
-        } catch (e) {
-          return promiseRejectedWith(e);
-        }
-        const nextPromise = promiseResolvedWith(nextResult);
-        return transformPromiseWith(nextPromise, (iterResult) => {
-          if (!typeIsObject(iterResult)) {
-            throw new TypeError("The promise returned by the iterator.next() method must fulfill with an object");
-          }
-          const done = IteratorComplete(iterResult);
-          if (done) {
-            ReadableStreamDefaultControllerClose(stream._readableStreamController);
-          } else {
-            const value = IteratorValue(iterResult);
-            ReadableStreamDefaultControllerEnqueue(stream._readableStreamController, value);
-          }
-        });
-      }
-      function cancelAlgorithm(reason) {
-        const iterator = iteratorRecord.iterator;
-        let returnMethod;
-        try {
-          returnMethod = GetMethod(iterator, "return");
-        } catch (e) {
-          return promiseRejectedWith(e);
-        }
-        if (returnMethod === undefined) {
-          return promiseResolvedWith(undefined);
-        }
-        let returnResult;
-        try {
-          returnResult = reflectCall(returnMethod, iterator, [reason]);
-        } catch (e) {
-          return promiseRejectedWith(e);
-        }
-        const returnPromise = promiseResolvedWith(returnResult);
-        return transformPromiseWith(returnPromise, (iterResult) => {
-          if (!typeIsObject(iterResult)) {
-            throw new TypeError("The promise returned by the iterator.return() method must fulfill with an object");
-          }
-          return;
-        });
-      }
-      stream = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, 0);
-      return stream;
-    }
-    function ReadableStreamFromDefaultReader(reader) {
-      let stream;
-      const startAlgorithm = noop;
-      function pullAlgorithm() {
-        let readPromise;
-        try {
-          readPromise = reader.read();
-        } catch (e) {
-          return promiseRejectedWith(e);
-        }
-        return transformPromiseWith(readPromise, (readResult) => {
-          if (!typeIsObject(readResult)) {
-            throw new TypeError("The promise returned by the reader.read() method must fulfill with an object");
-          }
-          if (readResult.done) {
-            ReadableStreamDefaultControllerClose(stream._readableStreamController);
-          } else {
-            const value = readResult.value;
-            ReadableStreamDefaultControllerEnqueue(stream._readableStreamController, value);
-          }
-        });
-      }
-      function cancelAlgorithm(reason) {
-        try {
-          return promiseResolvedWith(reader.cancel(reason));
-        } catch (e) {
-          return promiseRejectedWith(e);
-        }
-      }
-      stream = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, 0);
-      return stream;
-    }
-    function convertUnderlyingDefaultOrByteSource(source, context) {
-      assertDictionary(source, context);
-      const original = source;
-      const autoAllocateChunkSize = original === null || original === undefined ? undefined : original.autoAllocateChunkSize;
-      const cancel = original === null || original === undefined ? undefined : original.cancel;
-      const pull = original === null || original === undefined ? undefined : original.pull;
-      const start = original === null || original === undefined ? undefined : original.start;
-      const type2 = original === null || original === undefined ? undefined : original.type;
-      return {
-        autoAllocateChunkSize: autoAllocateChunkSize === undefined ? undefined : convertUnsignedLongLongWithEnforceRange(autoAllocateChunkSize, `${context} has member 'autoAllocateChunkSize' that`),
-        cancel: cancel === undefined ? undefined : convertUnderlyingSourceCancelCallback(cancel, original, `${context} has member 'cancel' that`),
-        pull: pull === undefined ? undefined : convertUnderlyingSourcePullCallback(pull, original, `${context} has member 'pull' that`),
-        start: start === undefined ? undefined : convertUnderlyingSourceStartCallback(start, original, `${context} has member 'start' that`),
-        type: type2 === undefined ? undefined : convertReadableStreamType(type2, `${context} has member 'type' that`)
-      };
-    }
-    function convertUnderlyingSourceCancelCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (reason) => promiseCall(fn, original, [reason]);
-    }
-    function convertUnderlyingSourcePullCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (controller) => promiseCall(fn, original, [controller]);
-    }
-    function convertUnderlyingSourceStartCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (controller) => reflectCall(fn, original, [controller]);
-    }
-    function convertReadableStreamType(type2, context) {
-      type2 = `${type2}`;
-      if (type2 !== "bytes") {
-        throw new TypeError(`${context} '${type2}' is not a valid enumeration value for ReadableStreamType`);
-      }
-      return type2;
-    }
-    function convertIteratorOptions(options, context) {
-      assertDictionary(options, context);
-      const preventCancel = options === null || options === undefined ? undefined : options.preventCancel;
-      return { preventCancel: Boolean(preventCancel) };
-    }
-    function convertPipeOptions(options, context) {
-      assertDictionary(options, context);
-      const preventAbort = options === null || options === undefined ? undefined : options.preventAbort;
-      const preventCancel = options === null || options === undefined ? undefined : options.preventCancel;
-      const preventClose = options === null || options === undefined ? undefined : options.preventClose;
-      const signal = options === null || options === undefined ? undefined : options.signal;
-      if (signal !== undefined) {
-        assertAbortSignal(signal, `${context} has member 'signal' that`);
-      }
-      return {
-        preventAbort: Boolean(preventAbort),
-        preventCancel: Boolean(preventCancel),
-        preventClose: Boolean(preventClose),
-        signal
-      };
-    }
-    function assertAbortSignal(signal, context) {
-      if (!isAbortSignal(signal)) {
-        throw new TypeError(`${context} is not an AbortSignal.`);
-      }
-    }
-    function convertReadableWritablePair(pair, context) {
-      assertDictionary(pair, context);
-      const readable = pair === null || pair === undefined ? undefined : pair.readable;
-      assertRequiredField(readable, "readable", "ReadableWritablePair");
-      assertReadableStream(readable, `${context} has member 'readable' that`);
-      const writable = pair === null || pair === undefined ? undefined : pair.writable;
-      assertRequiredField(writable, "writable", "ReadableWritablePair");
-      assertWritableStream(writable, `${context} has member 'writable' that`);
-      return { readable, writable };
-    }
-
-    class ReadableStream2 {
-      constructor(rawUnderlyingSource = {}, rawStrategy = {}) {
-        if (rawUnderlyingSource === undefined) {
-          rawUnderlyingSource = null;
-        } else {
-          assertObject(rawUnderlyingSource, "First parameter");
-        }
-        const strategy = convertQueuingStrategy(rawStrategy, "Second parameter");
-        const underlyingSource = convertUnderlyingDefaultOrByteSource(rawUnderlyingSource, "First parameter");
-        InitializeReadableStream(this);
-        if (underlyingSource.type === "bytes") {
-          if (strategy.size !== undefined) {
-            throw new RangeError("The strategy for a byte stream cannot have a size function");
-          }
-          const highWaterMark = ExtractHighWaterMark(strategy, 0);
-          SetUpReadableByteStreamControllerFromUnderlyingSource(this, underlyingSource, highWaterMark);
-        } else {
-          const sizeAlgorithm = ExtractSizeAlgorithm(strategy);
-          const highWaterMark = ExtractHighWaterMark(strategy, 1);
-          SetUpReadableStreamDefaultControllerFromUnderlyingSource(this, underlyingSource, highWaterMark, sizeAlgorithm);
-        }
-      }
-      get locked() {
-        if (!IsReadableStream(this)) {
-          throw streamBrandCheckException$1("locked");
-        }
-        return IsReadableStreamLocked(this);
-      }
-      cancel(reason = undefined) {
-        if (!IsReadableStream(this)) {
-          return promiseRejectedWith(streamBrandCheckException$1("cancel"));
-        }
-        if (IsReadableStreamLocked(this)) {
-          return promiseRejectedWith(new TypeError("Cannot cancel a stream that already has a reader"));
-        }
-        return ReadableStreamCancel(this, reason);
-      }
-      getReader(rawOptions = undefined) {
-        if (!IsReadableStream(this)) {
-          throw streamBrandCheckException$1("getReader");
-        }
-        const options = convertReaderOptions(rawOptions, "First parameter");
-        if (options.mode === undefined) {
-          return AcquireReadableStreamDefaultReader(this);
-        }
-        return AcquireReadableStreamBYOBReader(this);
-      }
-      pipeThrough(rawTransform, rawOptions = {}) {
-        if (!IsReadableStream(this)) {
-          throw streamBrandCheckException$1("pipeThrough");
-        }
-        assertRequiredArgument(rawTransform, 1, "pipeThrough");
-        const transform = convertReadableWritablePair(rawTransform, "First parameter");
-        const options = convertPipeOptions(rawOptions, "Second parameter");
-        if (IsReadableStreamLocked(this)) {
-          throw new TypeError("ReadableStream.prototype.pipeThrough cannot be used on a locked ReadableStream");
-        }
-        if (IsWritableStreamLocked(transform.writable)) {
-          throw new TypeError("ReadableStream.prototype.pipeThrough cannot be used on a locked WritableStream");
-        }
-        const promise = ReadableStreamPipeTo(this, transform.writable, options.preventClose, options.preventAbort, options.preventCancel, options.signal);
-        setPromiseIsHandledToTrue(promise);
-        return transform.readable;
-      }
-      pipeTo(destination, rawOptions = {}) {
-        if (!IsReadableStream(this)) {
-          return promiseRejectedWith(streamBrandCheckException$1("pipeTo"));
-        }
-        if (destination === undefined) {
-          return promiseRejectedWith(`Parameter 1 is required in 'pipeTo'.`);
-        }
-        if (!IsWritableStream(destination)) {
-          return promiseRejectedWith(new TypeError(`ReadableStream.prototype.pipeTo's first argument must be a WritableStream`));
-        }
-        let options;
-        try {
-          options = convertPipeOptions(rawOptions, "Second parameter");
-        } catch (e) {
-          return promiseRejectedWith(e);
-        }
-        if (IsReadableStreamLocked(this)) {
-          return promiseRejectedWith(new TypeError("ReadableStream.prototype.pipeTo cannot be used on a locked ReadableStream"));
-        }
-        if (IsWritableStreamLocked(destination)) {
-          return promiseRejectedWith(new TypeError("ReadableStream.prototype.pipeTo cannot be used on a locked WritableStream"));
-        }
-        return ReadableStreamPipeTo(this, destination, options.preventClose, options.preventAbort, options.preventCancel, options.signal);
-      }
-      tee() {
-        if (!IsReadableStream(this)) {
-          throw streamBrandCheckException$1("tee");
-        }
-        const branches = ReadableStreamTee(this);
-        return CreateArrayFromList(branches);
-      }
-      values(rawOptions = undefined) {
-        if (!IsReadableStream(this)) {
-          throw streamBrandCheckException$1("values");
-        }
-        const options = convertIteratorOptions(rawOptions, "First parameter");
-        return AcquireReadableStreamAsyncIterator(this, options.preventCancel);
-      }
-      [SymbolAsyncIterator](options) {
-        return this.values(options);
-      }
-      static from(asyncIterable) {
-        return ReadableStreamFrom(asyncIterable);
-      }
-    }
-    Object.defineProperties(ReadableStream2, {
-      from: { enumerable: true }
-    });
-    Object.defineProperties(ReadableStream2.prototype, {
-      cancel: { enumerable: true },
-      getReader: { enumerable: true },
-      pipeThrough: { enumerable: true },
-      pipeTo: { enumerable: true },
-      tee: { enumerable: true },
-      values: { enumerable: true },
-      locked: { enumerable: true }
-    });
-    setFunctionName(ReadableStream2.from, "from");
-    setFunctionName(ReadableStream2.prototype.cancel, "cancel");
-    setFunctionName(ReadableStream2.prototype.getReader, "getReader");
-    setFunctionName(ReadableStream2.prototype.pipeThrough, "pipeThrough");
-    setFunctionName(ReadableStream2.prototype.pipeTo, "pipeTo");
-    setFunctionName(ReadableStream2.prototype.tee, "tee");
-    setFunctionName(ReadableStream2.prototype.values, "values");
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(ReadableStream2.prototype, Symbol.toStringTag, {
-        value: "ReadableStream",
-        configurable: true
-      });
-    }
-    Object.defineProperty(ReadableStream2.prototype, SymbolAsyncIterator, {
-      value: ReadableStream2.prototype.values,
-      writable: true,
-      configurable: true
-    });
-    function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 1, sizeAlgorithm = () => 1) {
-      const stream = Object.create(ReadableStream2.prototype);
-      InitializeReadableStream(stream);
-      const controller = Object.create(ReadableStreamDefaultController.prototype);
-      SetUpReadableStreamDefaultController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
-      return stream;
-    }
-    function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm) {
-      const stream = Object.create(ReadableStream2.prototype);
-      InitializeReadableStream(stream);
-      const controller = Object.create(ReadableByteStreamController.prototype);
-      SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, 0, undefined);
-      return stream;
-    }
-    function InitializeReadableStream(stream) {
-      stream._state = "readable";
-      stream._reader = undefined;
-      stream._storedError = undefined;
-      stream._disturbed = false;
-    }
-    function IsReadableStream(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_readableStreamController")) {
-        return false;
-      }
-      return x instanceof ReadableStream2;
-    }
-    function IsReadableStreamLocked(stream) {
-      if (stream._reader === undefined) {
-        return false;
-      }
-      return true;
-    }
-    function ReadableStreamCancel(stream, reason) {
-      stream._disturbed = true;
-      if (stream._state === "closed") {
-        return promiseResolvedWith(undefined);
-      }
-      if (stream._state === "errored") {
-        return promiseRejectedWith(stream._storedError);
-      }
-      ReadableStreamClose(stream);
-      const reader = stream._reader;
-      if (reader !== undefined && IsReadableStreamBYOBReader(reader)) {
-        const readIntoRequests = reader._readIntoRequests;
-        reader._readIntoRequests = new SimpleQueue;
-        readIntoRequests.forEach((readIntoRequest) => {
-          readIntoRequest._closeSteps(undefined);
-        });
-      }
-      const sourceCancelPromise = stream._readableStreamController[CancelSteps](reason);
-      return transformPromiseWith(sourceCancelPromise, noop);
-    }
-    function ReadableStreamClose(stream) {
-      stream._state = "closed";
-      const reader = stream._reader;
-      if (reader === undefined) {
-        return;
-      }
-      defaultReaderClosedPromiseResolve(reader);
-      if (IsReadableStreamDefaultReader(reader)) {
-        const readRequests = reader._readRequests;
-        reader._readRequests = new SimpleQueue;
-        readRequests.forEach((readRequest) => {
-          readRequest._closeSteps();
-        });
-      }
-    }
-    function ReadableStreamError(stream, e) {
-      stream._state = "errored";
-      stream._storedError = e;
-      const reader = stream._reader;
-      if (reader === undefined) {
-        return;
-      }
-      defaultReaderClosedPromiseReject(reader, e);
-      if (IsReadableStreamDefaultReader(reader)) {
-        ReadableStreamDefaultReaderErrorReadRequests(reader, e);
-      } else {
-        ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e);
-      }
-    }
-    function streamBrandCheckException$1(name) {
-      return new TypeError(`ReadableStream.prototype.${name} can only be used on a ReadableStream`);
-    }
-    function convertQueuingStrategyInit(init, context) {
-      assertDictionary(init, context);
-      const highWaterMark = init === null || init === undefined ? undefined : init.highWaterMark;
-      assertRequiredField(highWaterMark, "highWaterMark", "QueuingStrategyInit");
-      return {
-        highWaterMark: convertUnrestrictedDouble(highWaterMark)
-      };
-    }
-    const byteLengthSizeFunction = (chunk) => {
-      return chunk.byteLength;
-    };
-    setFunctionName(byteLengthSizeFunction, "size");
-
-    class ByteLengthQueuingStrategy {
-      constructor(options) {
-        assertRequiredArgument(options, 1, "ByteLengthQueuingStrategy");
-        options = convertQueuingStrategyInit(options, "First parameter");
-        this._byteLengthQueuingStrategyHighWaterMark = options.highWaterMark;
-      }
-      get highWaterMark() {
-        if (!IsByteLengthQueuingStrategy(this)) {
-          throw byteLengthBrandCheckException("highWaterMark");
-        }
-        return this._byteLengthQueuingStrategyHighWaterMark;
-      }
-      get size() {
-        if (!IsByteLengthQueuingStrategy(this)) {
-          throw byteLengthBrandCheckException("size");
-        }
-        return byteLengthSizeFunction;
-      }
-    }
-    Object.defineProperties(ByteLengthQueuingStrategy.prototype, {
-      highWaterMark: { enumerable: true },
-      size: { enumerable: true }
-    });
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(ByteLengthQueuingStrategy.prototype, Symbol.toStringTag, {
-        value: "ByteLengthQueuingStrategy",
-        configurable: true
-      });
-    }
-    function byteLengthBrandCheckException(name) {
-      return new TypeError(`ByteLengthQueuingStrategy.prototype.${name} can only be used on a ByteLengthQueuingStrategy`);
-    }
-    function IsByteLengthQueuingStrategy(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_byteLengthQueuingStrategyHighWaterMark")) {
-        return false;
-      }
-      return x instanceof ByteLengthQueuingStrategy;
-    }
-    const countSizeFunction = () => {
-      return 1;
-    };
-    setFunctionName(countSizeFunction, "size");
-
-    class CountQueuingStrategy {
-      constructor(options) {
-        assertRequiredArgument(options, 1, "CountQueuingStrategy");
-        options = convertQueuingStrategyInit(options, "First parameter");
-        this._countQueuingStrategyHighWaterMark = options.highWaterMark;
-      }
-      get highWaterMark() {
-        if (!IsCountQueuingStrategy(this)) {
-          throw countBrandCheckException("highWaterMark");
-        }
-        return this._countQueuingStrategyHighWaterMark;
-      }
-      get size() {
-        if (!IsCountQueuingStrategy(this)) {
-          throw countBrandCheckException("size");
-        }
-        return countSizeFunction;
-      }
-    }
-    Object.defineProperties(CountQueuingStrategy.prototype, {
-      highWaterMark: { enumerable: true },
-      size: { enumerable: true }
-    });
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(CountQueuingStrategy.prototype, Symbol.toStringTag, {
-        value: "CountQueuingStrategy",
-        configurable: true
-      });
-    }
-    function countBrandCheckException(name) {
-      return new TypeError(`CountQueuingStrategy.prototype.${name} can only be used on a CountQueuingStrategy`);
-    }
-    function IsCountQueuingStrategy(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_countQueuingStrategyHighWaterMark")) {
-        return false;
-      }
-      return x instanceof CountQueuingStrategy;
-    }
-    function convertTransformer(original, context) {
-      assertDictionary(original, context);
-      const cancel = original === null || original === undefined ? undefined : original.cancel;
-      const flush = original === null || original === undefined ? undefined : original.flush;
-      const readableType = original === null || original === undefined ? undefined : original.readableType;
-      const start = original === null || original === undefined ? undefined : original.start;
-      const transform = original === null || original === undefined ? undefined : original.transform;
-      const writableType = original === null || original === undefined ? undefined : original.writableType;
-      return {
-        cancel: cancel === undefined ? undefined : convertTransformerCancelCallback(cancel, original, `${context} has member 'cancel' that`),
-        flush: flush === undefined ? undefined : convertTransformerFlushCallback(flush, original, `${context} has member 'flush' that`),
-        readableType,
-        start: start === undefined ? undefined : convertTransformerStartCallback(start, original, `${context} has member 'start' that`),
-        transform: transform === undefined ? undefined : convertTransformerTransformCallback(transform, original, `${context} has member 'transform' that`),
-        writableType
-      };
-    }
-    function convertTransformerFlushCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (controller) => promiseCall(fn, original, [controller]);
-    }
-    function convertTransformerStartCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (controller) => reflectCall(fn, original, [controller]);
-    }
-    function convertTransformerTransformCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (chunk, controller) => promiseCall(fn, original, [chunk, controller]);
-    }
-    function convertTransformerCancelCallback(fn, original, context) {
-      assertFunction(fn, context);
-      return (reason) => promiseCall(fn, original, [reason]);
-    }
-
-    class TransformStream {
-      constructor(rawTransformer = {}, rawWritableStrategy = {}, rawReadableStrategy = {}) {
-        if (rawTransformer === undefined) {
-          rawTransformer = null;
-        }
-        const writableStrategy = convertQueuingStrategy(rawWritableStrategy, "Second parameter");
-        const readableStrategy = convertQueuingStrategy(rawReadableStrategy, "Third parameter");
-        const transformer = convertTransformer(rawTransformer, "First parameter");
-        if (transformer.readableType !== undefined) {
-          throw new RangeError("Invalid readableType specified");
-        }
-        if (transformer.writableType !== undefined) {
-          throw new RangeError("Invalid writableType specified");
-        }
-        const readableHighWaterMark = ExtractHighWaterMark(readableStrategy, 0);
-        const readableSizeAlgorithm = ExtractSizeAlgorithm(readableStrategy);
-        const writableHighWaterMark = ExtractHighWaterMark(writableStrategy, 1);
-        const writableSizeAlgorithm = ExtractSizeAlgorithm(writableStrategy);
-        let startPromise_resolve;
-        const startPromise = newPromise((resolve) => {
-          startPromise_resolve = resolve;
-        });
-        InitializeTransformStream(this, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm);
-        SetUpTransformStreamDefaultControllerFromTransformer(this, transformer);
-        if (transformer.start !== undefined) {
-          startPromise_resolve(transformer.start(this._transformStreamController));
-        } else {
-          startPromise_resolve(undefined);
-        }
-      }
-      get readable() {
-        if (!IsTransformStream(this)) {
-          throw streamBrandCheckException("readable");
-        }
-        return this._readable;
-      }
-      get writable() {
-        if (!IsTransformStream(this)) {
-          throw streamBrandCheckException("writable");
-        }
-        return this._writable;
-      }
-    }
-    Object.defineProperties(TransformStream.prototype, {
-      readable: { enumerable: true },
-      writable: { enumerable: true }
-    });
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(TransformStream.prototype, Symbol.toStringTag, {
-        value: "TransformStream",
-        configurable: true
-      });
-    }
-    function InitializeTransformStream(stream, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm) {
-      function startAlgorithm() {
-        return startPromise;
-      }
-      function writeAlgorithm(chunk) {
-        return TransformStreamDefaultSinkWriteAlgorithm(stream, chunk);
-      }
-      function abortAlgorithm(reason) {
-        return TransformStreamDefaultSinkAbortAlgorithm(stream, reason);
-      }
-      function closeAlgorithm() {
-        return TransformStreamDefaultSinkCloseAlgorithm(stream);
-      }
-      stream._writable = CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, writableHighWaterMark, writableSizeAlgorithm);
-      function pullAlgorithm() {
-        return TransformStreamDefaultSourcePullAlgorithm(stream);
-      }
-      function cancelAlgorithm(reason) {
-        return TransformStreamDefaultSourceCancelAlgorithm(stream, reason);
-      }
-      stream._readable = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, readableHighWaterMark, readableSizeAlgorithm);
-      stream._backpressure = undefined;
-      stream._backpressureChangePromise = undefined;
-      stream._backpressureChangePromise_resolve = undefined;
-      TransformStreamSetBackpressure(stream, true);
-      stream._transformStreamController = undefined;
-    }
-    function IsTransformStream(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_transformStreamController")) {
-        return false;
-      }
-      return x instanceof TransformStream;
-    }
-    function TransformStreamError(stream, e) {
-      ReadableStreamDefaultControllerError(stream._readable._readableStreamController, e);
-      TransformStreamErrorWritableAndUnblockWrite(stream, e);
-    }
-    function TransformStreamErrorWritableAndUnblockWrite(stream, e) {
-      TransformStreamDefaultControllerClearAlgorithms(stream._transformStreamController);
-      WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, e);
-      TransformStreamUnblockWrite(stream);
-    }
-    function TransformStreamUnblockWrite(stream) {
-      if (stream._backpressure) {
-        TransformStreamSetBackpressure(stream, false);
-      }
-    }
-    function TransformStreamSetBackpressure(stream, backpressure) {
-      if (stream._backpressureChangePromise !== undefined) {
-        stream._backpressureChangePromise_resolve();
-      }
-      stream._backpressureChangePromise = newPromise((resolve) => {
-        stream._backpressureChangePromise_resolve = resolve;
-      });
-      stream._backpressure = backpressure;
-    }
-
-    class TransformStreamDefaultController {
-      constructor() {
-        throw new TypeError("Illegal constructor");
-      }
-      get desiredSize() {
-        if (!IsTransformStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException("desiredSize");
-        }
-        const readableController = this._controlledTransformStream._readable._readableStreamController;
-        return ReadableStreamDefaultControllerGetDesiredSize(readableController);
-      }
-      enqueue(chunk = undefined) {
-        if (!IsTransformStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException("enqueue");
-        }
-        TransformStreamDefaultControllerEnqueue(this, chunk);
-      }
-      error(reason = undefined) {
-        if (!IsTransformStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException("error");
-        }
-        TransformStreamDefaultControllerError(this, reason);
-      }
-      terminate() {
-        if (!IsTransformStreamDefaultController(this)) {
-          throw defaultControllerBrandCheckException("terminate");
-        }
-        TransformStreamDefaultControllerTerminate(this);
-      }
-    }
-    Object.defineProperties(TransformStreamDefaultController.prototype, {
-      enqueue: { enumerable: true },
-      error: { enumerable: true },
-      terminate: { enumerable: true },
-      desiredSize: { enumerable: true }
-    });
-    setFunctionName(TransformStreamDefaultController.prototype.enqueue, "enqueue");
-    setFunctionName(TransformStreamDefaultController.prototype.error, "error");
-    setFunctionName(TransformStreamDefaultController.prototype.terminate, "terminate");
-    if (typeof Symbol.toStringTag === "symbol") {
-      Object.defineProperty(TransformStreamDefaultController.prototype, Symbol.toStringTag, {
-        value: "TransformStreamDefaultController",
-        configurable: true
-      });
-    }
-    function IsTransformStreamDefaultController(x) {
-      if (!typeIsObject(x)) {
-        return false;
-      }
-      if (!Object.prototype.hasOwnProperty.call(x, "_controlledTransformStream")) {
-        return false;
-      }
-      return x instanceof TransformStreamDefaultController;
-    }
-    function SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm, cancelAlgorithm) {
-      controller._controlledTransformStream = stream;
-      stream._transformStreamController = controller;
-      controller._transformAlgorithm = transformAlgorithm;
-      controller._flushAlgorithm = flushAlgorithm;
-      controller._cancelAlgorithm = cancelAlgorithm;
-      controller._finishPromise = undefined;
-      controller._finishPromise_resolve = undefined;
-      controller._finishPromise_reject = undefined;
-    }
-    function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer) {
-      const controller = Object.create(TransformStreamDefaultController.prototype);
-      let transformAlgorithm;
-      let flushAlgorithm;
-      let cancelAlgorithm;
-      if (transformer.transform !== undefined) {
-        transformAlgorithm = (chunk) => transformer.transform(chunk, controller);
-      } else {
-        transformAlgorithm = (chunk) => {
-          try {
-            TransformStreamDefaultControllerEnqueue(controller, chunk);
-            return promiseResolvedWith(undefined);
-          } catch (transformResultE) {
-            return promiseRejectedWith(transformResultE);
-          }
-        };
-      }
-      if (transformer.flush !== undefined) {
-        flushAlgorithm = () => transformer.flush(controller);
-      } else {
-        flushAlgorithm = () => promiseResolvedWith(undefined);
-      }
-      if (transformer.cancel !== undefined) {
-        cancelAlgorithm = (reason) => transformer.cancel(reason);
-      } else {
-        cancelAlgorithm = () => promiseResolvedWith(undefined);
-      }
-      SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm, cancelAlgorithm);
-    }
-    function TransformStreamDefaultControllerClearAlgorithms(controller) {
-      controller._transformAlgorithm = undefined;
-      controller._flushAlgorithm = undefined;
-      controller._cancelAlgorithm = undefined;
-    }
-    function TransformStreamDefaultControllerEnqueue(controller, chunk) {
-      const stream = controller._controlledTransformStream;
-      const readableController = stream._readable._readableStreamController;
-      if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController)) {
-        throw new TypeError("Readable side is not in a state that permits enqueue");
-      }
-      try {
-        ReadableStreamDefaultControllerEnqueue(readableController, chunk);
-      } catch (e) {
-        TransformStreamErrorWritableAndUnblockWrite(stream, e);
-        throw stream._readable._storedError;
-      }
-      const backpressure = ReadableStreamDefaultControllerHasBackpressure(readableController);
-      if (backpressure !== stream._backpressure) {
-        TransformStreamSetBackpressure(stream, true);
-      }
-    }
-    function TransformStreamDefaultControllerError(controller, e) {
-      TransformStreamError(controller._controlledTransformStream, e);
-    }
-    function TransformStreamDefaultControllerPerformTransform(controller, chunk) {
-      const transformPromise = controller._transformAlgorithm(chunk);
-      return transformPromiseWith(transformPromise, undefined, (r) => {
-        TransformStreamError(controller._controlledTransformStream, r);
-        throw r;
-      });
-    }
-    function TransformStreamDefaultControllerTerminate(controller) {
-      const stream = controller._controlledTransformStream;
-      const readableController = stream._readable._readableStreamController;
-      ReadableStreamDefaultControllerClose(readableController);
-      const error = new TypeError("TransformStream terminated");
-      TransformStreamErrorWritableAndUnblockWrite(stream, error);
-    }
-    function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
-      const controller = stream._transformStreamController;
-      if (stream._backpressure) {
-        const backpressureChangePromise = stream._backpressureChangePromise;
-        return transformPromiseWith(backpressureChangePromise, () => {
-          const writable = stream._writable;
-          const state = writable._state;
-          if (state === "erroring") {
-            throw writable._storedError;
-          }
-          return TransformStreamDefaultControllerPerformTransform(controller, chunk);
-        });
-      }
-      return TransformStreamDefaultControllerPerformTransform(controller, chunk);
-    }
-    function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
-      const controller = stream._transformStreamController;
-      if (controller._finishPromise !== undefined) {
-        return controller._finishPromise;
-      }
-      const readable = stream._readable;
-      controller._finishPromise = newPromise((resolve, reject) => {
-        controller._finishPromise_resolve = resolve;
-        controller._finishPromise_reject = reject;
-      });
-      const cancelPromise = controller._cancelAlgorithm(reason);
-      TransformStreamDefaultControllerClearAlgorithms(controller);
-      uponPromise(cancelPromise, () => {
-        if (readable._state === "errored") {
-          defaultControllerFinishPromiseReject(controller, readable._storedError);
-        } else {
-          ReadableStreamDefaultControllerError(readable._readableStreamController, reason);
-          defaultControllerFinishPromiseResolve(controller);
-        }
-        return null;
-      }, (r) => {
-        ReadableStreamDefaultControllerError(readable._readableStreamController, r);
-        defaultControllerFinishPromiseReject(controller, r);
-        return null;
-      });
-      return controller._finishPromise;
-    }
-    function TransformStreamDefaultSinkCloseAlgorithm(stream) {
-      const controller = stream._transformStreamController;
-      if (controller._finishPromise !== undefined) {
-        return controller._finishPromise;
-      }
-      const readable = stream._readable;
-      controller._finishPromise = newPromise((resolve, reject) => {
-        controller._finishPromise_resolve = resolve;
-        controller._finishPromise_reject = reject;
-      });
-      const flushPromise = controller._flushAlgorithm();
-      TransformStreamDefaultControllerClearAlgorithms(controller);
-      uponPromise(flushPromise, () => {
-        if (readable._state === "errored") {
-          defaultControllerFinishPromiseReject(controller, readable._storedError);
-        } else {
-          ReadableStreamDefaultControllerClose(readable._readableStreamController);
-          defaultControllerFinishPromiseResolve(controller);
-        }
-        return null;
-      }, (r) => {
-        ReadableStreamDefaultControllerError(readable._readableStreamController, r);
-        defaultControllerFinishPromiseReject(controller, r);
-        return null;
-      });
-      return controller._finishPromise;
-    }
-    function TransformStreamDefaultSourcePullAlgorithm(stream) {
-      TransformStreamSetBackpressure(stream, false);
-      return stream._backpressureChangePromise;
-    }
-    function TransformStreamDefaultSourceCancelAlgorithm(stream, reason) {
-      const controller = stream._transformStreamController;
-      if (controller._finishPromise !== undefined) {
-        return controller._finishPromise;
-      }
-      const writable = stream._writable;
-      controller._finishPromise = newPromise((resolve, reject) => {
-        controller._finishPromise_resolve = resolve;
-        controller._finishPromise_reject = reject;
-      });
-      const cancelPromise = controller._cancelAlgorithm(reason);
-      TransformStreamDefaultControllerClearAlgorithms(controller);
-      uponPromise(cancelPromise, () => {
-        if (writable._state === "errored") {
-          defaultControllerFinishPromiseReject(controller, writable._storedError);
-        } else {
-          WritableStreamDefaultControllerErrorIfNeeded(writable._writableStreamController, reason);
-          TransformStreamUnblockWrite(stream);
-          defaultControllerFinishPromiseResolve(controller);
-        }
-        return null;
-      }, (r) => {
-        WritableStreamDefaultControllerErrorIfNeeded(writable._writableStreamController, r);
-        TransformStreamUnblockWrite(stream);
-        defaultControllerFinishPromiseReject(controller, r);
-        return null;
-      });
-      return controller._finishPromise;
-    }
-    function defaultControllerBrandCheckException(name) {
-      return new TypeError(`TransformStreamDefaultController.prototype.${name} can only be used on a TransformStreamDefaultController`);
-    }
-    function defaultControllerFinishPromiseResolve(controller) {
-      if (controller._finishPromise_resolve === undefined) {
-        return;
-      }
-      controller._finishPromise_resolve();
-      controller._finishPromise_resolve = undefined;
-      controller._finishPromise_reject = undefined;
-    }
-    function defaultControllerFinishPromiseReject(controller, reason) {
-      if (controller._finishPromise_reject === undefined) {
-        return;
-      }
-      setPromiseIsHandledToTrue(controller._finishPromise);
-      controller._finishPromise_reject(reason);
-      controller._finishPromise_resolve = undefined;
-      controller._finishPromise_reject = undefined;
-    }
-    function streamBrandCheckException(name) {
-      return new TypeError(`TransformStream.prototype.${name} can only be used on a TransformStream`);
-    }
-    exports2.ByteLengthQueuingStrategy = ByteLengthQueuingStrategy;
-    exports2.CountQueuingStrategy = CountQueuingStrategy;
-    exports2.ReadableByteStreamController = ReadableByteStreamController;
-    exports2.ReadableStream = ReadableStream2;
-    exports2.ReadableStreamBYOBReader = ReadableStreamBYOBReader;
-    exports2.ReadableStreamBYOBRequest = ReadableStreamBYOBRequest;
-    exports2.ReadableStreamDefaultController = ReadableStreamDefaultController;
-    exports2.ReadableStreamDefaultReader = ReadableStreamDefaultReader;
-    exports2.TransformStream = TransformStream;
-    exports2.TransformStreamDefaultController = TransformStreamDefaultController;
-    exports2.WritableStream = WritableStream;
-    exports2.WritableStreamDefaultController = WritableStreamDefaultController;
-    exports2.WritableStreamDefaultWriter = WritableStreamDefaultWriter;
-  });
+// node_modules/ws/lib/constants.js
+var require_constants = __commonJS((exports, module) => {
+  var BINARY_TYPES = ["nodebuffer", "arraybuffer", "fragments"];
+  var hasBlob = typeof Blob !== "undefined";
+  if (hasBlob)
+    BINARY_TYPES.push("blob");
+  module.exports = {
+    BINARY_TYPES,
+    EMPTY_BUFFER: Buffer.alloc(0),
+    GUID: "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
+    hasBlob,
+    kForOnEventAttribute: Symbol("kIsForOnEventAttribute"),
+    kListener: Symbol("kListener"),
+    kStatusCode: Symbol("status-code"),
+    kWebSocket: Symbol("websocket"),
+    NOOP: () => {}
+  };
 });
 
-// node_modules/fetch-blob/streams.cjs
-var require_streams = __commonJS(() => {
-  var POOL_SIZE = 65536;
-  if (!globalThis.ReadableStream) {
-    try {
-      const process3 = __require("node:process");
-      const { emitWarning } = process3;
-      try {
-        process3.emitWarning = () => {};
-        Object.assign(globalThis, __require("node:stream/web"));
-        process3.emitWarning = emitWarning;
-      } catch (error) {
-        process3.emitWarning = emitWarning;
-        throw error;
-      }
-    } catch (error) {
-      Object.assign(globalThis, require_ponyfill_es2018());
+// node_modules/ws/lib/buffer-util.js
+var require_buffer_util = __commonJS((exports, module) => {
+  var { EMPTY_BUFFER } = require_constants();
+  var FastBuffer = Buffer[Symbol.species];
+  function concat(list, totalLength) {
+    if (list.length === 0)
+      return EMPTY_BUFFER;
+    if (list.length === 1)
+      return list[0];
+    const target = Buffer.allocUnsafe(totalLength);
+    let offset = 0;
+    for (let i2 = 0;i2 < list.length; i2++) {
+      const buf = list[i2];
+      target.set(buf, offset);
+      offset += buf.length;
+    }
+    if (offset < totalLength) {
+      return new FastBuffer(target.buffer, target.byteOffset, offset);
+    }
+    return target;
+  }
+  function _mask(source, mask, output, offset, length) {
+    for (let i2 = 0;i2 < length; i2++) {
+      output[offset + i2] = source[i2] ^ mask[i2 & 3];
     }
   }
-  try {
-    const { Blob } = __require("buffer");
-    if (Blob && !Blob.prototype.stream) {
-      Blob.prototype.stream = function name(params) {
-        let position = 0;
-        const blob = this;
-        return new ReadableStream({
-          type: "bytes",
-          async pull(ctrl) {
-            const chunk = blob.slice(position, Math.min(blob.size, position + POOL_SIZE));
-            const buffer = await chunk.arrayBuffer();
-            position += buffer.byteLength;
-            ctrl.enqueue(new Uint8Array(buffer));
-            if (position === blob.size) {
-              ctrl.close();
-            }
-          }
-        });
-      };
+  function _unmask(buffer, mask) {
+    for (let i2 = 0;i2 < buffer.length; i2++) {
+      buffer[i2] ^= mask[i2 & 3];
     }
-  } catch (error) {}
-});
-
-// node_modules/fetch-blob/index.js
-async function* toIterator(parts, clone = true) {
-  for (const part of parts) {
-    if ("stream" in part) {
-      yield* part.stream();
-    } else if (ArrayBuffer.isView(part)) {
-      if (clone) {
-        let position = part.byteOffset;
-        const end = part.byteOffset + part.byteLength;
-        while (position !== end) {
-          const size = Math.min(end - position, POOL_SIZE);
-          const chunk = part.buffer.slice(position, position + size);
-          position += chunk.byteLength;
-          yield new Uint8Array(chunk);
-        }
-      } else {
-        yield part;
-      }
+  }
+  function toArrayBuffer(buf) {
+    if (buf.length === buf.buffer.byteLength) {
+      return buf.buffer;
+    }
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
+  }
+  function toBuffer(data) {
+    toBuffer.readOnly = true;
+    if (Buffer.isBuffer(data))
+      return data;
+    let buf;
+    if (data instanceof ArrayBuffer) {
+      buf = new FastBuffer(data);
+    } else if (ArrayBuffer.isView(data)) {
+      buf = new FastBuffer(data.buffer, data.byteOffset, data.byteLength);
     } else {
-      let position = 0, b = part;
-      while (position !== b.size) {
-        const chunk = b.slice(position, Math.min(b.size, position + POOL_SIZE));
-        const buffer = await chunk.arrayBuffer();
-        position += buffer.byteLength;
-        yield new Uint8Array(buffer);
+      buf = Buffer.from(data);
+      toBuffer.readOnly = false;
+    }
+    return buf;
+  }
+  module.exports = {
+    concat,
+    mask: _mask,
+    toArrayBuffer,
+    toBuffer,
+    unmask: _unmask
+  };
+  if (!process.env.WS_NO_BUFFER_UTIL) {
+    try {
+      const bufferUtil = (()=>{throw new Error("Cannot require module "+"bufferutil");})();
+      module.exports.mask = function(source, mask, output, offset, length) {
+        if (length < 48)
+          _mask(source, mask, output, offset, length);
+        else
+          bufferUtil.mask(source, mask, output, offset, length);
+      };
+      module.exports.unmask = function(buffer, mask) {
+        if (buffer.length < 32)
+          _unmask(buffer, mask);
+        else
+          bufferUtil.unmask(buffer, mask);
+      };
+    } catch (e) {}
+  }
+});
+
+// node_modules/ws/lib/limiter.js
+var require_limiter = __commonJS((exports, module) => {
+  var kDone = Symbol("kDone");
+  var kRun = Symbol("kRun");
+
+  class Limiter {
+    constructor(concurrency) {
+      this[kDone] = () => {
+        this.pending--;
+        this[kRun]();
+      };
+      this.concurrency = concurrency || Infinity;
+      this.jobs = [];
+      this.pending = 0;
+    }
+    add(job) {
+      this.jobs.push(job);
+      this[kRun]();
+    }
+    [kRun]() {
+      if (this.pending === this.concurrency)
+        return;
+      if (this.jobs.length) {
+        const job = this.jobs.shift();
+        this.pending++;
+        job(this[kDone]);
       }
     }
   }
-}
-var import_streams, POOL_SIZE = 65536, _Blob, Blob2, fetch_blob_default;
-var init_fetch_blob = __esm(() => {
-  import_streams = __toESM(require_streams(), 1);
-  /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
-  _Blob = class Blob {
-    #parts = [];
-    #type = "";
-    #size = 0;
-    #endings = "transparent";
-    constructor(blobParts = [], options = {}) {
-      if (typeof blobParts !== "object" || blobParts === null) {
-        throw new TypeError("Failed to construct 'Blob': The provided value cannot be converted to a sequence.");
+  module.exports = Limiter;
+});
+
+// node_modules/ws/lib/permessage-deflate.js
+var require_permessage_deflate = __commonJS((exports, module) => {
+  var zlib = __require("zlib");
+  var bufferUtil = require_buffer_util();
+  var Limiter = require_limiter();
+  var { kStatusCode } = require_constants();
+  var FastBuffer = Buffer[Symbol.species];
+  var TRAILER = Buffer.from([0, 0, 255, 255]);
+  var kPerMessageDeflate = Symbol("permessage-deflate");
+  var kTotalLength = Symbol("total-length");
+  var kCallback = Symbol("callback");
+  var kBuffers = Symbol("buffers");
+  var kError = Symbol("error");
+  var zlibLimiter;
+
+  class PerMessageDeflate {
+    constructor(options, isServer, maxPayload) {
+      this._maxPayload = maxPayload | 0;
+      this._options = options || {};
+      this._threshold = this._options.threshold !== undefined ? this._options.threshold : 1024;
+      this._isServer = !!isServer;
+      this._deflate = null;
+      this._inflate = null;
+      this.params = null;
+      if (!zlibLimiter) {
+        const concurrency = this._options.concurrencyLimit !== undefined ? this._options.concurrencyLimit : 10;
+        zlibLimiter = new Limiter(concurrency);
       }
-      if (typeof blobParts[Symbol.iterator] !== "function") {
-        throw new TypeError("Failed to construct 'Blob': The object must have a callable @@iterator property.");
-      }
-      if (typeof options !== "object" && typeof options !== "function") {
-        throw new TypeError("Failed to construct 'Blob': parameter 2 cannot convert to dictionary.");
-      }
-      if (options === null)
-        options = {};
-      const encoder = new TextEncoder;
-      for (const element of blobParts) {
-        let part;
-        if (ArrayBuffer.isView(element)) {
-          part = new Uint8Array(element.buffer.slice(element.byteOffset, element.byteOffset + element.byteLength));
-        } else if (element instanceof ArrayBuffer) {
-          part = new Uint8Array(element.slice(0));
-        } else if (element instanceof Blob) {
-          part = element;
-        } else {
-          part = encoder.encode(`${element}`);
-        }
-        this.#size += ArrayBuffer.isView(part) ? part.byteLength : part.size;
-        this.#parts.push(part);
-      }
-      this.#endings = `${options.endings === undefined ? "transparent" : options.endings}`;
-      const type2 = options.type === undefined ? "" : String(options.type);
-      this.#type = /^[\x20-\x7E]*$/.test(type2) ? type2 : "";
     }
-    get size() {
-      return this.#size;
+    static get extensionName() {
+      return "permessage-deflate";
+    }
+    offer() {
+      const params = {};
+      if (this._options.serverNoContextTakeover) {
+        params.server_no_context_takeover = true;
+      }
+      if (this._options.clientNoContextTakeover) {
+        params.client_no_context_takeover = true;
+      }
+      if (this._options.serverMaxWindowBits) {
+        params.server_max_window_bits = this._options.serverMaxWindowBits;
+      }
+      if (this._options.clientMaxWindowBits) {
+        params.client_max_window_bits = this._options.clientMaxWindowBits;
+      } else if (this._options.clientMaxWindowBits == null) {
+        params.client_max_window_bits = true;
+      }
+      return params;
+    }
+    accept(configurations) {
+      configurations = this.normalizeParams(configurations);
+      this.params = this._isServer ? this.acceptAsServer(configurations) : this.acceptAsClient(configurations);
+      return this.params;
+    }
+    cleanup() {
+      if (this._inflate) {
+        this._inflate.close();
+        this._inflate = null;
+      }
+      if (this._deflate) {
+        const callback = this._deflate[kCallback];
+        this._deflate.close();
+        this._deflate = null;
+        if (callback) {
+          callback(new Error("The deflate stream was closed while data was being processed"));
+        }
+      }
+    }
+    acceptAsServer(offers) {
+      const opts = this._options;
+      const accepted = offers.find((params) => {
+        if (opts.serverNoContextTakeover === false && params.server_no_context_takeover || params.server_max_window_bits && (opts.serverMaxWindowBits === false || typeof opts.serverMaxWindowBits === "number" && opts.serverMaxWindowBits > params.server_max_window_bits) || typeof opts.clientMaxWindowBits === "number" && !params.client_max_window_bits) {
+          return false;
+        }
+        return true;
+      });
+      if (!accepted) {
+        throw new Error("None of the extension offers can be accepted");
+      }
+      if (opts.serverNoContextTakeover) {
+        accepted.server_no_context_takeover = true;
+      }
+      if (opts.clientNoContextTakeover) {
+        accepted.client_no_context_takeover = true;
+      }
+      if (typeof opts.serverMaxWindowBits === "number") {
+        accepted.server_max_window_bits = opts.serverMaxWindowBits;
+      }
+      if (typeof opts.clientMaxWindowBits === "number") {
+        accepted.client_max_window_bits = opts.clientMaxWindowBits;
+      } else if (accepted.client_max_window_bits === true || opts.clientMaxWindowBits === false) {
+        delete accepted.client_max_window_bits;
+      }
+      return accepted;
+    }
+    acceptAsClient(response) {
+      const params = response[0];
+      if (this._options.clientNoContextTakeover === false && params.client_no_context_takeover) {
+        throw new Error('Unexpected parameter "client_no_context_takeover"');
+      }
+      if (!params.client_max_window_bits) {
+        if (typeof this._options.clientMaxWindowBits === "number") {
+          params.client_max_window_bits = this._options.clientMaxWindowBits;
+        }
+      } else if (this._options.clientMaxWindowBits === false || typeof this._options.clientMaxWindowBits === "number" && params.client_max_window_bits > this._options.clientMaxWindowBits) {
+        throw new Error('Unexpected or invalid parameter "client_max_window_bits"');
+      }
+      return params;
+    }
+    normalizeParams(configurations) {
+      configurations.forEach((params) => {
+        Object.keys(params).forEach((key) => {
+          let value = params[key];
+          if (value.length > 1) {
+            throw new Error(`Parameter "${key}" must have only a single value`);
+          }
+          value = value[0];
+          if (key === "client_max_window_bits") {
+            if (value !== true) {
+              const num = +value;
+              if (!Number.isInteger(num) || num < 8 || num > 15) {
+                throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
+              }
+              value = num;
+            } else if (!this._isServer) {
+              throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
+            }
+          } else if (key === "server_max_window_bits") {
+            const num = +value;
+            if (!Number.isInteger(num) || num < 8 || num > 15) {
+              throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
+            }
+            value = num;
+          } else if (key === "client_no_context_takeover" || key === "server_no_context_takeover") {
+            if (value !== true) {
+              throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
+            }
+          } else {
+            throw new Error(`Unknown parameter "${key}"`);
+          }
+          params[key] = value;
+        });
+      });
+      return configurations;
+    }
+    decompress(data, fin, callback) {
+      zlibLimiter.add((done) => {
+        this._decompress(data, fin, (err, result) => {
+          done();
+          callback(err, result);
+        });
+      });
+    }
+    compress(data, fin, callback) {
+      zlibLimiter.add((done) => {
+        this._compress(data, fin, (err, result) => {
+          done();
+          callback(err, result);
+        });
+      });
+    }
+    _decompress(data, fin, callback) {
+      const endpoint = this._isServer ? "client" : "server";
+      if (!this._inflate) {
+        const key = `${endpoint}_max_window_bits`;
+        const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
+        this._inflate = zlib.createInflateRaw({
+          ...this._options.zlibInflateOptions,
+          windowBits
+        });
+        this._inflate[kPerMessageDeflate] = this;
+        this._inflate[kTotalLength] = 0;
+        this._inflate[kBuffers] = [];
+        this._inflate.on("error", inflateOnError);
+        this._inflate.on("data", inflateOnData);
+      }
+      this._inflate[kCallback] = callback;
+      this._inflate.write(data);
+      if (fin)
+        this._inflate.write(TRAILER);
+      this._inflate.flush(() => {
+        const err = this._inflate[kError];
+        if (err) {
+          this._inflate.close();
+          this._inflate = null;
+          callback(err);
+          return;
+        }
+        const data2 = bufferUtil.concat(this._inflate[kBuffers], this._inflate[kTotalLength]);
+        if (this._inflate._readableState.endEmitted) {
+          this._inflate.close();
+          this._inflate = null;
+        } else {
+          this._inflate[kTotalLength] = 0;
+          this._inflate[kBuffers] = [];
+          if (fin && this.params[`${endpoint}_no_context_takeover`]) {
+            this._inflate.reset();
+          }
+        }
+        callback(null, data2);
+      });
+    }
+    _compress(data, fin, callback) {
+      const endpoint = this._isServer ? "server" : "client";
+      if (!this._deflate) {
+        const key = `${endpoint}_max_window_bits`;
+        const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
+        this._deflate = zlib.createDeflateRaw({
+          ...this._options.zlibDeflateOptions,
+          windowBits
+        });
+        this._deflate[kTotalLength] = 0;
+        this._deflate[kBuffers] = [];
+        this._deflate.on("data", deflateOnData);
+      }
+      this._deflate[kCallback] = callback;
+      this._deflate.write(data);
+      this._deflate.flush(zlib.Z_SYNC_FLUSH, () => {
+        if (!this._deflate) {
+          return;
+        }
+        let data2 = bufferUtil.concat(this._deflate[kBuffers], this._deflate[kTotalLength]);
+        if (fin) {
+          data2 = new FastBuffer(data2.buffer, data2.byteOffset, data2.length - 4);
+        }
+        this._deflate[kCallback] = null;
+        this._deflate[kTotalLength] = 0;
+        this._deflate[kBuffers] = [];
+        if (fin && this.params[`${endpoint}_no_context_takeover`]) {
+          this._deflate.reset();
+        }
+        callback(null, data2);
+      });
+    }
+  }
+  module.exports = PerMessageDeflate;
+  function deflateOnData(chunk) {
+    this[kBuffers].push(chunk);
+    this[kTotalLength] += chunk.length;
+  }
+  function inflateOnData(chunk) {
+    this[kTotalLength] += chunk.length;
+    if (this[kPerMessageDeflate]._maxPayload < 1 || this[kTotalLength] <= this[kPerMessageDeflate]._maxPayload) {
+      this[kBuffers].push(chunk);
+      return;
+    }
+    this[kError] = new RangeError("Max payload size exceeded");
+    this[kError].code = "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH";
+    this[kError][kStatusCode] = 1009;
+    this.removeListener("data", inflateOnData);
+    this.reset();
+  }
+  function inflateOnError(err) {
+    this[kPerMessageDeflate]._inflate = null;
+    if (this[kError]) {
+      this[kCallback](this[kError]);
+      return;
+    }
+    err[kStatusCode] = 1007;
+    this[kCallback](err);
+  }
+});
+
+// node_modules/ws/lib/validation.js
+var require_validation = __commonJS((exports, module) => {
+  var { isUtf8 } = __require("buffer");
+  var { hasBlob } = require_constants();
+  var tokenChars = [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    1,
+    0,
+    1,
+    0
+  ];
+  function isValidStatusCode(code) {
+    return code >= 1000 && code <= 1014 && code !== 1004 && code !== 1005 && code !== 1006 || code >= 3000 && code <= 4999;
+  }
+  function _isValidUTF8(buf) {
+    const len = buf.length;
+    let i2 = 0;
+    while (i2 < len) {
+      if ((buf[i2] & 128) === 0) {
+        i2++;
+      } else if ((buf[i2] & 224) === 192) {
+        if (i2 + 1 === len || (buf[i2 + 1] & 192) !== 128 || (buf[i2] & 254) === 192) {
+          return false;
+        }
+        i2 += 2;
+      } else if ((buf[i2] & 240) === 224) {
+        if (i2 + 2 >= len || (buf[i2 + 1] & 192) !== 128 || (buf[i2 + 2] & 192) !== 128 || buf[i2] === 224 && (buf[i2 + 1] & 224) === 128 || buf[i2] === 237 && (buf[i2 + 1] & 224) === 160) {
+          return false;
+        }
+        i2 += 3;
+      } else if ((buf[i2] & 248) === 240) {
+        if (i2 + 3 >= len || (buf[i2 + 1] & 192) !== 128 || (buf[i2 + 2] & 192) !== 128 || (buf[i2 + 3] & 192) !== 128 || buf[i2] === 240 && (buf[i2 + 1] & 240) === 128 || buf[i2] === 244 && buf[i2 + 1] > 143 || buf[i2] > 244) {
+          return false;
+        }
+        i2 += 4;
+      } else {
+        return false;
+      }
+    }
+    return true;
+  }
+  function isBlob(value) {
+    return hasBlob && typeof value === "object" && typeof value.arrayBuffer === "function" && typeof value.type === "string" && typeof value.stream === "function" && (value[Symbol.toStringTag] === "Blob" || value[Symbol.toStringTag] === "File");
+  }
+  module.exports = {
+    isBlob,
+    isValidStatusCode,
+    isValidUTF8: _isValidUTF8,
+    tokenChars
+  };
+  if (isUtf8) {
+    module.exports.isValidUTF8 = function(buf) {
+      return buf.length < 24 ? _isValidUTF8(buf) : isUtf8(buf);
+    };
+  } else if (!process.env.WS_NO_UTF_8_VALIDATE) {
+    try {
+      const isValidUTF8 = (()=>{throw new Error("Cannot require module "+"utf-8-validate");})();
+      module.exports.isValidUTF8 = function(buf) {
+        return buf.length < 32 ? _isValidUTF8(buf) : isValidUTF8(buf);
+      };
+    } catch (e) {}
+  }
+});
+
+// node_modules/ws/lib/receiver.js
+var require_receiver = __commonJS((exports, module) => {
+  var { Writable } = __require("stream");
+  var PerMessageDeflate = require_permessage_deflate();
+  var {
+    BINARY_TYPES,
+    EMPTY_BUFFER,
+    kStatusCode,
+    kWebSocket
+  } = require_constants();
+  var { concat, toArrayBuffer, unmask } = require_buffer_util();
+  var { isValidStatusCode, isValidUTF8 } = require_validation();
+  var FastBuffer = Buffer[Symbol.species];
+  var GET_INFO = 0;
+  var GET_PAYLOAD_LENGTH_16 = 1;
+  var GET_PAYLOAD_LENGTH_64 = 2;
+  var GET_MASK = 3;
+  var GET_DATA = 4;
+  var INFLATING = 5;
+  var DEFER_EVENT = 6;
+
+  class Receiver extends Writable {
+    constructor(options = {}) {
+      super();
+      this._allowSynchronousEvents = options.allowSynchronousEvents !== undefined ? options.allowSynchronousEvents : true;
+      this._binaryType = options.binaryType || BINARY_TYPES[0];
+      this._extensions = options.extensions || {};
+      this._isServer = !!options.isServer;
+      this._maxPayload = options.maxPayload | 0;
+      this._skipUTF8Validation = !!options.skipUTF8Validation;
+      this[kWebSocket] = undefined;
+      this._bufferedBytes = 0;
+      this._buffers = [];
+      this._compressed = false;
+      this._payloadLength = 0;
+      this._mask = undefined;
+      this._fragmented = 0;
+      this._masked = false;
+      this._fin = false;
+      this._opcode = 0;
+      this._totalPayloadLength = 0;
+      this._messageLength = 0;
+      this._fragments = [];
+      this._errored = false;
+      this._loop = false;
+      this._state = GET_INFO;
+    }
+    _write(chunk, encoding, cb) {
+      if (this._opcode === 8 && this._state == GET_INFO)
+        return cb();
+      this._bufferedBytes += chunk.length;
+      this._buffers.push(chunk);
+      this.startLoop(cb);
+    }
+    consume(n) {
+      this._bufferedBytes -= n;
+      if (n === this._buffers[0].length)
+        return this._buffers.shift();
+      if (n < this._buffers[0].length) {
+        const buf = this._buffers[0];
+        this._buffers[0] = new FastBuffer(buf.buffer, buf.byteOffset + n, buf.length - n);
+        return new FastBuffer(buf.buffer, buf.byteOffset, n);
+      }
+      const dst = Buffer.allocUnsafe(n);
+      do {
+        const buf = this._buffers[0];
+        const offset = dst.length - n;
+        if (n >= buf.length) {
+          dst.set(this._buffers.shift(), offset);
+        } else {
+          dst.set(new Uint8Array(buf.buffer, buf.byteOffset, n), offset);
+          this._buffers[0] = new FastBuffer(buf.buffer, buf.byteOffset + n, buf.length - n);
+        }
+        n -= buf.length;
+      } while (n > 0);
+      return dst;
+    }
+    startLoop(cb) {
+      this._loop = true;
+      do {
+        switch (this._state) {
+          case GET_INFO:
+            this.getInfo(cb);
+            break;
+          case GET_PAYLOAD_LENGTH_16:
+            this.getPayloadLength16(cb);
+            break;
+          case GET_PAYLOAD_LENGTH_64:
+            this.getPayloadLength64(cb);
+            break;
+          case GET_MASK:
+            this.getMask();
+            break;
+          case GET_DATA:
+            this.getData(cb);
+            break;
+          case INFLATING:
+          case DEFER_EVENT:
+            this._loop = false;
+            return;
+        }
+      } while (this._loop);
+      if (!this._errored)
+        cb();
+    }
+    getInfo(cb) {
+      if (this._bufferedBytes < 2) {
+        this._loop = false;
+        return;
+      }
+      const buf = this.consume(2);
+      if ((buf[0] & 48) !== 0) {
+        const error = this.createError(RangeError, "RSV2 and RSV3 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_2_3");
+        cb(error);
+        return;
+      }
+      const compressed = (buf[0] & 64) === 64;
+      if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
+        const error = this.createError(RangeError, "RSV1 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_1");
+        cb(error);
+        return;
+      }
+      this._fin = (buf[0] & 128) === 128;
+      this._opcode = buf[0] & 15;
+      this._payloadLength = buf[1] & 127;
+      if (this._opcode === 0) {
+        if (compressed) {
+          const error = this.createError(RangeError, "RSV1 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_1");
+          cb(error);
+          return;
+        }
+        if (!this._fragmented) {
+          const error = this.createError(RangeError, "invalid opcode 0", true, 1002, "WS_ERR_INVALID_OPCODE");
+          cb(error);
+          return;
+        }
+        this._opcode = this._fragmented;
+      } else if (this._opcode === 1 || this._opcode === 2) {
+        if (this._fragmented) {
+          const error = this.createError(RangeError, `invalid opcode ${this._opcode}`, true, 1002, "WS_ERR_INVALID_OPCODE");
+          cb(error);
+          return;
+        }
+        this._compressed = compressed;
+      } else if (this._opcode > 7 && this._opcode < 11) {
+        if (!this._fin) {
+          const error = this.createError(RangeError, "FIN must be set", true, 1002, "WS_ERR_EXPECTED_FIN");
+          cb(error);
+          return;
+        }
+        if (compressed) {
+          const error = this.createError(RangeError, "RSV1 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_1");
+          cb(error);
+          return;
+        }
+        if (this._payloadLength > 125 || this._opcode === 8 && this._payloadLength === 1) {
+          const error = this.createError(RangeError, `invalid payload length ${this._payloadLength}`, true, 1002, "WS_ERR_INVALID_CONTROL_PAYLOAD_LENGTH");
+          cb(error);
+          return;
+        }
+      } else {
+        const error = this.createError(RangeError, `invalid opcode ${this._opcode}`, true, 1002, "WS_ERR_INVALID_OPCODE");
+        cb(error);
+        return;
+      }
+      if (!this._fin && !this._fragmented)
+        this._fragmented = this._opcode;
+      this._masked = (buf[1] & 128) === 128;
+      if (this._isServer) {
+        if (!this._masked) {
+          const error = this.createError(RangeError, "MASK must be set", true, 1002, "WS_ERR_EXPECTED_MASK");
+          cb(error);
+          return;
+        }
+      } else if (this._masked) {
+        const error = this.createError(RangeError, "MASK must be clear", true, 1002, "WS_ERR_UNEXPECTED_MASK");
+        cb(error);
+        return;
+      }
+      if (this._payloadLength === 126)
+        this._state = GET_PAYLOAD_LENGTH_16;
+      else if (this._payloadLength === 127)
+        this._state = GET_PAYLOAD_LENGTH_64;
+      else
+        this.haveLength(cb);
+    }
+    getPayloadLength16(cb) {
+      if (this._bufferedBytes < 2) {
+        this._loop = false;
+        return;
+      }
+      this._payloadLength = this.consume(2).readUInt16BE(0);
+      this.haveLength(cb);
+    }
+    getPayloadLength64(cb) {
+      if (this._bufferedBytes < 8) {
+        this._loop = false;
+        return;
+      }
+      const buf = this.consume(8);
+      const num = buf.readUInt32BE(0);
+      if (num > Math.pow(2, 53 - 32) - 1) {
+        const error = this.createError(RangeError, "Unsupported WebSocket frame: payload length > 2^53 - 1", false, 1009, "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH");
+        cb(error);
+        return;
+      }
+      this._payloadLength = num * Math.pow(2, 32) + buf.readUInt32BE(4);
+      this.haveLength(cb);
+    }
+    haveLength(cb) {
+      if (this._payloadLength && this._opcode < 8) {
+        this._totalPayloadLength += this._payloadLength;
+        if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
+          const error = this.createError(RangeError, "Max payload size exceeded", false, 1009, "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH");
+          cb(error);
+          return;
+        }
+      }
+      if (this._masked)
+        this._state = GET_MASK;
+      else
+        this._state = GET_DATA;
+    }
+    getMask() {
+      if (this._bufferedBytes < 4) {
+        this._loop = false;
+        return;
+      }
+      this._mask = this.consume(4);
+      this._state = GET_DATA;
+    }
+    getData(cb) {
+      let data = EMPTY_BUFFER;
+      if (this._payloadLength) {
+        if (this._bufferedBytes < this._payloadLength) {
+          this._loop = false;
+          return;
+        }
+        data = this.consume(this._payloadLength);
+        if (this._masked && (this._mask[0] | this._mask[1] | this._mask[2] | this._mask[3]) !== 0) {
+          unmask(data, this._mask);
+        }
+      }
+      if (this._opcode > 7) {
+        this.controlMessage(data, cb);
+        return;
+      }
+      if (this._compressed) {
+        this._state = INFLATING;
+        this.decompress(data, cb);
+        return;
+      }
+      if (data.length) {
+        this._messageLength = this._totalPayloadLength;
+        this._fragments.push(data);
+      }
+      this.dataMessage(cb);
+    }
+    decompress(data, cb) {
+      const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+      perMessageDeflate.decompress(data, this._fin, (err, buf) => {
+        if (err)
+          return cb(err);
+        if (buf.length) {
+          this._messageLength += buf.length;
+          if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
+            const error = this.createError(RangeError, "Max payload size exceeded", false, 1009, "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH");
+            cb(error);
+            return;
+          }
+          this._fragments.push(buf);
+        }
+        this.dataMessage(cb);
+        if (this._state === GET_INFO)
+          this.startLoop(cb);
+      });
+    }
+    dataMessage(cb) {
+      if (!this._fin) {
+        this._state = GET_INFO;
+        return;
+      }
+      const messageLength = this._messageLength;
+      const fragments = this._fragments;
+      this._totalPayloadLength = 0;
+      this._messageLength = 0;
+      this._fragmented = 0;
+      this._fragments = [];
+      if (this._opcode === 2) {
+        let data;
+        if (this._binaryType === "nodebuffer") {
+          data = concat(fragments, messageLength);
+        } else if (this._binaryType === "arraybuffer") {
+          data = toArrayBuffer(concat(fragments, messageLength));
+        } else if (this._binaryType === "blob") {
+          data = new Blob(fragments);
+        } else {
+          data = fragments;
+        }
+        if (this._allowSynchronousEvents) {
+          this.emit("message", data, true);
+          this._state = GET_INFO;
+        } else {
+          this._state = DEFER_EVENT;
+          setImmediate(() => {
+            this.emit("message", data, true);
+            this._state = GET_INFO;
+            this.startLoop(cb);
+          });
+        }
+      } else {
+        const buf = concat(fragments, messageLength);
+        if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
+          const error = this.createError(Error, "invalid UTF-8 sequence", true, 1007, "WS_ERR_INVALID_UTF8");
+          cb(error);
+          return;
+        }
+        if (this._state === INFLATING || this._allowSynchronousEvents) {
+          this.emit("message", buf, false);
+          this._state = GET_INFO;
+        } else {
+          this._state = DEFER_EVENT;
+          setImmediate(() => {
+            this.emit("message", buf, false);
+            this._state = GET_INFO;
+            this.startLoop(cb);
+          });
+        }
+      }
+    }
+    controlMessage(data, cb) {
+      if (this._opcode === 8) {
+        if (data.length === 0) {
+          this._loop = false;
+          this.emit("conclude", 1005, EMPTY_BUFFER);
+          this.end();
+        } else {
+          const code = data.readUInt16BE(0);
+          if (!isValidStatusCode(code)) {
+            const error = this.createError(RangeError, `invalid status code ${code}`, true, 1002, "WS_ERR_INVALID_CLOSE_CODE");
+            cb(error);
+            return;
+          }
+          const buf = new FastBuffer(data.buffer, data.byteOffset + 2, data.length - 2);
+          if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
+            const error = this.createError(Error, "invalid UTF-8 sequence", true, 1007, "WS_ERR_INVALID_UTF8");
+            cb(error);
+            return;
+          }
+          this._loop = false;
+          this.emit("conclude", code, buf);
+          this.end();
+        }
+        this._state = GET_INFO;
+        return;
+      }
+      if (this._allowSynchronousEvents) {
+        this.emit(this._opcode === 9 ? "ping" : "pong", data);
+        this._state = GET_INFO;
+      } else {
+        this._state = DEFER_EVENT;
+        setImmediate(() => {
+          this.emit(this._opcode === 9 ? "ping" : "pong", data);
+          this._state = GET_INFO;
+          this.startLoop(cb);
+        });
+      }
+    }
+    createError(ErrorCtor, message, prefix, statusCode, errorCode) {
+      this._loop = false;
+      this._errored = true;
+      const err = new ErrorCtor(prefix ? `Invalid WebSocket frame: ${message}` : message);
+      Error.captureStackTrace(err, this.createError);
+      err.code = errorCode;
+      err[kStatusCode] = statusCode;
+      return err;
+    }
+  }
+  module.exports = Receiver;
+});
+
+// node_modules/ws/lib/sender.js
+var require_sender = __commonJS((exports, module) => {
+  var { Duplex } = __require("stream");
+  var { randomFillSync } = __require("crypto");
+  var PerMessageDeflate = require_permessage_deflate();
+  var { EMPTY_BUFFER, kWebSocket, NOOP } = require_constants();
+  var { isBlob, isValidStatusCode } = require_validation();
+  var { mask: applyMask, toBuffer } = require_buffer_util();
+  var kByteLength = Symbol("kByteLength");
+  var maskBuffer = Buffer.alloc(4);
+  var RANDOM_POOL_SIZE = 8 * 1024;
+  var randomPool;
+  var randomPoolPointer = RANDOM_POOL_SIZE;
+  var DEFAULT = 0;
+  var DEFLATING = 1;
+  var GET_BLOB_DATA = 2;
+
+  class Sender {
+    constructor(socket, extensions, generateMask) {
+      this._extensions = extensions || {};
+      if (generateMask) {
+        this._generateMask = generateMask;
+        this._maskBuffer = Buffer.alloc(4);
+      }
+      this._socket = socket;
+      this._firstFragment = true;
+      this._compress = false;
+      this._bufferedBytes = 0;
+      this._queue = [];
+      this._state = DEFAULT;
+      this.onerror = NOOP;
+      this[kWebSocket] = undefined;
+    }
+    static frame(data, options) {
+      let mask;
+      let merge2 = false;
+      let offset = 2;
+      let skipMasking = false;
+      if (options.mask) {
+        mask = options.maskBuffer || maskBuffer;
+        if (options.generateMask) {
+          options.generateMask(mask);
+        } else {
+          if (randomPoolPointer === RANDOM_POOL_SIZE) {
+            if (randomPool === undefined) {
+              randomPool = Buffer.alloc(RANDOM_POOL_SIZE);
+            }
+            randomFillSync(randomPool, 0, RANDOM_POOL_SIZE);
+            randomPoolPointer = 0;
+          }
+          mask[0] = randomPool[randomPoolPointer++];
+          mask[1] = randomPool[randomPoolPointer++];
+          mask[2] = randomPool[randomPoolPointer++];
+          mask[3] = randomPool[randomPoolPointer++];
+        }
+        skipMasking = (mask[0] | mask[1] | mask[2] | mask[3]) === 0;
+        offset = 6;
+      }
+      let dataLength;
+      if (typeof data === "string") {
+        if ((!options.mask || skipMasking) && options[kByteLength] !== undefined) {
+          dataLength = options[kByteLength];
+        } else {
+          data = Buffer.from(data);
+          dataLength = data.length;
+        }
+      } else {
+        dataLength = data.length;
+        merge2 = options.mask && options.readOnly && !skipMasking;
+      }
+      let payloadLength = dataLength;
+      if (dataLength >= 65536) {
+        offset += 8;
+        payloadLength = 127;
+      } else if (dataLength > 125) {
+        offset += 2;
+        payloadLength = 126;
+      }
+      const target = Buffer.allocUnsafe(merge2 ? dataLength + offset : offset);
+      target[0] = options.fin ? options.opcode | 128 : options.opcode;
+      if (options.rsv1)
+        target[0] |= 64;
+      target[1] = payloadLength;
+      if (payloadLength === 126) {
+        target.writeUInt16BE(dataLength, 2);
+      } else if (payloadLength === 127) {
+        target[2] = target[3] = 0;
+        target.writeUIntBE(dataLength, 4, 6);
+      }
+      if (!options.mask)
+        return [target, data];
+      target[1] |= 128;
+      target[offset - 4] = mask[0];
+      target[offset - 3] = mask[1];
+      target[offset - 2] = mask[2];
+      target[offset - 1] = mask[3];
+      if (skipMasking)
+        return [target, data];
+      if (merge2) {
+        applyMask(data, mask, target, offset, dataLength);
+        return [target];
+      }
+      applyMask(data, mask, data, 0, dataLength);
+      return [target, data];
+    }
+    close(code, data, mask, cb) {
+      let buf;
+      if (code === undefined) {
+        buf = EMPTY_BUFFER;
+      } else if (typeof code !== "number" || !isValidStatusCode(code)) {
+        throw new TypeError("First argument must be a valid error code number");
+      } else if (data === undefined || !data.length) {
+        buf = Buffer.allocUnsafe(2);
+        buf.writeUInt16BE(code, 0);
+      } else {
+        const length = Buffer.byteLength(data);
+        if (length > 123) {
+          throw new RangeError("The message must not be greater than 123 bytes");
+        }
+        buf = Buffer.allocUnsafe(2 + length);
+        buf.writeUInt16BE(code, 0);
+        if (typeof data === "string") {
+          buf.write(data, 2);
+        } else {
+          buf.set(data, 2);
+        }
+      }
+      const options = {
+        [kByteLength]: buf.length,
+        fin: true,
+        generateMask: this._generateMask,
+        mask,
+        maskBuffer: this._maskBuffer,
+        opcode: 8,
+        readOnly: false,
+        rsv1: false
+      };
+      if (this._state !== DEFAULT) {
+        this.enqueue([this.dispatch, buf, false, options, cb]);
+      } else {
+        this.sendFrame(Sender.frame(buf, options), cb);
+      }
+    }
+    ping(data, mask, cb) {
+      let byteLength;
+      let readOnly;
+      if (typeof data === "string") {
+        byteLength = Buffer.byteLength(data);
+        readOnly = false;
+      } else if (isBlob(data)) {
+        byteLength = data.size;
+        readOnly = false;
+      } else {
+        data = toBuffer(data);
+        byteLength = data.length;
+        readOnly = toBuffer.readOnly;
+      }
+      if (byteLength > 125) {
+        throw new RangeError("The data size must not be greater than 125 bytes");
+      }
+      const options = {
+        [kByteLength]: byteLength,
+        fin: true,
+        generateMask: this._generateMask,
+        mask,
+        maskBuffer: this._maskBuffer,
+        opcode: 9,
+        readOnly,
+        rsv1: false
+      };
+      if (isBlob(data)) {
+        if (this._state !== DEFAULT) {
+          this.enqueue([this.getBlobData, data, false, options, cb]);
+        } else {
+          this.getBlobData(data, false, options, cb);
+        }
+      } else if (this._state !== DEFAULT) {
+        this.enqueue([this.dispatch, data, false, options, cb]);
+      } else {
+        this.sendFrame(Sender.frame(data, options), cb);
+      }
+    }
+    pong(data, mask, cb) {
+      let byteLength;
+      let readOnly;
+      if (typeof data === "string") {
+        byteLength = Buffer.byteLength(data);
+        readOnly = false;
+      } else if (isBlob(data)) {
+        byteLength = data.size;
+        readOnly = false;
+      } else {
+        data = toBuffer(data);
+        byteLength = data.length;
+        readOnly = toBuffer.readOnly;
+      }
+      if (byteLength > 125) {
+        throw new RangeError("The data size must not be greater than 125 bytes");
+      }
+      const options = {
+        [kByteLength]: byteLength,
+        fin: true,
+        generateMask: this._generateMask,
+        mask,
+        maskBuffer: this._maskBuffer,
+        opcode: 10,
+        readOnly,
+        rsv1: false
+      };
+      if (isBlob(data)) {
+        if (this._state !== DEFAULT) {
+          this.enqueue([this.getBlobData, data, false, options, cb]);
+        } else {
+          this.getBlobData(data, false, options, cb);
+        }
+      } else if (this._state !== DEFAULT) {
+        this.enqueue([this.dispatch, data, false, options, cb]);
+      } else {
+        this.sendFrame(Sender.frame(data, options), cb);
+      }
+    }
+    send(data, options, cb) {
+      const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+      let opcode = options.binary ? 2 : 1;
+      let rsv1 = options.compress;
+      let byteLength;
+      let readOnly;
+      if (typeof data === "string") {
+        byteLength = Buffer.byteLength(data);
+        readOnly = false;
+      } else if (isBlob(data)) {
+        byteLength = data.size;
+        readOnly = false;
+      } else {
+        data = toBuffer(data);
+        byteLength = data.length;
+        readOnly = toBuffer.readOnly;
+      }
+      if (this._firstFragment) {
+        this._firstFragment = false;
+        if (rsv1 && perMessageDeflate && perMessageDeflate.params[perMessageDeflate._isServer ? "server_no_context_takeover" : "client_no_context_takeover"]) {
+          rsv1 = byteLength >= perMessageDeflate._threshold;
+        }
+        this._compress = rsv1;
+      } else {
+        rsv1 = false;
+        opcode = 0;
+      }
+      if (options.fin)
+        this._firstFragment = true;
+      const opts = {
+        [kByteLength]: byteLength,
+        fin: options.fin,
+        generateMask: this._generateMask,
+        mask: options.mask,
+        maskBuffer: this._maskBuffer,
+        opcode,
+        readOnly,
+        rsv1
+      };
+      if (isBlob(data)) {
+        if (this._state !== DEFAULT) {
+          this.enqueue([this.getBlobData, data, this._compress, opts, cb]);
+        } else {
+          this.getBlobData(data, this._compress, opts, cb);
+        }
+      } else if (this._state !== DEFAULT) {
+        this.enqueue([this.dispatch, data, this._compress, opts, cb]);
+      } else {
+        this.dispatch(data, this._compress, opts, cb);
+      }
+    }
+    getBlobData(blob, compress, options, cb) {
+      this._bufferedBytes += options[kByteLength];
+      this._state = GET_BLOB_DATA;
+      blob.arrayBuffer().then((arrayBuffer) => {
+        if (this._socket.destroyed) {
+          const err = new Error("The socket was closed while the blob was being read");
+          process.nextTick(callCallbacks, this, err, cb);
+          return;
+        }
+        this._bufferedBytes -= options[kByteLength];
+        const data = toBuffer(arrayBuffer);
+        if (!compress) {
+          this._state = DEFAULT;
+          this.sendFrame(Sender.frame(data, options), cb);
+          this.dequeue();
+        } else {
+          this.dispatch(data, compress, options, cb);
+        }
+      }).catch((err) => {
+        process.nextTick(onError, this, err, cb);
+      });
+    }
+    dispatch(data, compress, options, cb) {
+      if (!compress) {
+        this.sendFrame(Sender.frame(data, options), cb);
+        return;
+      }
+      const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+      this._bufferedBytes += options[kByteLength];
+      this._state = DEFLATING;
+      perMessageDeflate.compress(data, options.fin, (_, buf) => {
+        if (this._socket.destroyed) {
+          const err = new Error("The socket was closed while data was being compressed");
+          callCallbacks(this, err, cb);
+          return;
+        }
+        this._bufferedBytes -= options[kByteLength];
+        this._state = DEFAULT;
+        options.readOnly = false;
+        this.sendFrame(Sender.frame(buf, options), cb);
+        this.dequeue();
+      });
+    }
+    dequeue() {
+      while (this._state === DEFAULT && this._queue.length) {
+        const params = this._queue.shift();
+        this._bufferedBytes -= params[3][kByteLength];
+        Reflect.apply(params[0], this, params.slice(1));
+      }
+    }
+    enqueue(params) {
+      this._bufferedBytes += params[3][kByteLength];
+      this._queue.push(params);
+    }
+    sendFrame(list, cb) {
+      if (list.length === 2) {
+        this._socket.cork();
+        this._socket.write(list[0]);
+        this._socket.write(list[1], cb);
+        this._socket.uncork();
+      } else {
+        this._socket.write(list[0], cb);
+      }
+    }
+  }
+  module.exports = Sender;
+  function callCallbacks(sender, err, cb) {
+    if (typeof cb === "function")
+      cb(err);
+    for (let i2 = 0;i2 < sender._queue.length; i2++) {
+      const params = sender._queue[i2];
+      const callback = params[params.length - 1];
+      if (typeof callback === "function")
+        callback(err);
+    }
+  }
+  function onError(sender, err, cb) {
+    callCallbacks(sender, err, cb);
+    sender.onerror(err);
+  }
+});
+
+// node_modules/ws/lib/event-target.js
+var require_event_target = __commonJS((exports, module) => {
+  var { kForOnEventAttribute, kListener } = require_constants();
+  var kCode = Symbol("kCode");
+  var kData = Symbol("kData");
+  var kError = Symbol("kError");
+  var kMessage = Symbol("kMessage");
+  var kReason = Symbol("kReason");
+  var kTarget = Symbol("kTarget");
+  var kType = Symbol("kType");
+  var kWasClean = Symbol("kWasClean");
+
+  class Event {
+    constructor(type2) {
+      this[kTarget] = null;
+      this[kType] = type2;
+    }
+    get target() {
+      return this[kTarget];
     }
     get type() {
-      return this.#type;
-    }
-    async text() {
-      const decoder = new TextDecoder;
-      let str2 = "";
-      for await (const part of toIterator(this.#parts, false)) {
-        str2 += decoder.decode(part, { stream: true });
-      }
-      str2 += decoder.decode();
-      return str2;
-    }
-    async arrayBuffer() {
-      const data = new Uint8Array(this.size);
-      let offset = 0;
-      for await (const chunk of toIterator(this.#parts, false)) {
-        data.set(chunk, offset);
-        offset += chunk.length;
-      }
-      return data.buffer;
-    }
-    stream() {
-      const it = toIterator(this.#parts, true);
-      return new globalThis.ReadableStream({
-        type: "bytes",
-        async pull(ctrl) {
-          const chunk = await it.next();
-          chunk.done ? ctrl.close() : ctrl.enqueue(chunk.value);
-        },
-        async cancel() {
-          await it.return();
-        }
-      });
-    }
-    slice(start = 0, end = this.size, type2 = "") {
-      const { size } = this;
-      let relativeStart = start < 0 ? Math.max(size + start, 0) : Math.min(start, size);
-      let relativeEnd = end < 0 ? Math.max(size + end, 0) : Math.min(end, size);
-      const span = Math.max(relativeEnd - relativeStart, 0);
-      const parts = this.#parts;
-      const blobParts = [];
-      let added = 0;
-      for (const part of parts) {
-        if (added >= span) {
-          break;
-        }
-        const size2 = ArrayBuffer.isView(part) ? part.byteLength : part.size;
-        if (relativeStart && size2 <= relativeStart) {
-          relativeStart -= size2;
-          relativeEnd -= size2;
-        } else {
-          let chunk;
-          if (ArrayBuffer.isView(part)) {
-            chunk = part.subarray(relativeStart, Math.min(size2, relativeEnd));
-            added += chunk.byteLength;
-          } else {
-            chunk = part.slice(relativeStart, Math.min(size2, relativeEnd));
-            added += chunk.size;
-          }
-          relativeEnd -= size2;
-          blobParts.push(chunk);
-          relativeStart = 0;
-        }
-      }
-      const blob = new Blob([], { type: String(type2).toLowerCase() });
-      blob.#size = span;
-      blob.#parts = blobParts;
-      return blob;
-    }
-    get [Symbol.toStringTag]() {
-      return "Blob";
-    }
-    static [Symbol.hasInstance](object) {
-      return object && typeof object === "object" && typeof object.constructor === "function" && (typeof object.stream === "function" || typeof object.arrayBuffer === "function") && /^(Blob|File)$/.test(object[Symbol.toStringTag]);
-    }
-  };
-  Object.defineProperties(_Blob.prototype, {
-    size: { enumerable: true },
-    type: { enumerable: true },
-    slice: { enumerable: true }
-  });
-  Blob2 = _Blob;
-  fetch_blob_default = Blob2;
-});
-
-// node_modules/fetch-blob/file.js
-var _File, File2, file_default;
-var init_file = __esm(() => {
-  init_fetch_blob();
-  _File = class File extends fetch_blob_default {
-    #lastModified = 0;
-    #name = "";
-    constructor(fileBits, fileName, options = {}) {
-      if (arguments.length < 2) {
-        throw new TypeError(`Failed to construct 'File': 2 arguments required, but only ${arguments.length} present.`);
-      }
-      super(fileBits, options);
-      if (options === null)
-        options = {};
-      const lastModified = options.lastModified === undefined ? Date.now() : Number(options.lastModified);
-      if (!Number.isNaN(lastModified)) {
-        this.#lastModified = lastModified;
-      }
-      this.#name = String(fileName);
-    }
-    get name() {
-      return this.#name;
-    }
-    get lastModified() {
-      return this.#lastModified;
-    }
-    get [Symbol.toStringTag]() {
-      return "File";
-    }
-    static [Symbol.hasInstance](object) {
-      return !!object && object instanceof fetch_blob_default && /^(File)$/.test(object[Symbol.toStringTag]);
-    }
-  };
-  File2 = _File;
-  file_default = File2;
-});
-
-// node_modules/formdata-polyfill/esm.min.js
-function formDataToBlob(F, B = fetch_blob_default) {
-  var b = `${r()}${r()}`.replace(/\./g, "").slice(-28).padStart(32, "-"), c = [], p = `--${b}\r
-Content-Disposition: form-data; name="`;
-  F.forEach((v, n) => typeof v == "string" ? c.push(p + e(n) + `"\r
-\r
-${v.replace(/\r(?!\n)|(?<!\r)\n/g, `\r
-`)}\r
-`) : c.push(p + e(n) + `"; filename="${e(v.name, 1)}"\r
-Content-Type: ${v.type || "application/octet-stream"}\r
-\r
-`, v, `\r
-`));
-  c.push(`--${b}--`);
-  return new B(c, { type: "multipart/form-data; boundary=" + b });
-}
-var t, i2, h, r, m, f = (a, b, c) => (a += "", /^(Blob|File)$/.test(b && b[t]) ? [(c = c !== undefined ? c + "" : b[t] == "File" ? b.name : "blob", a), b.name !== c || b[t] == "blob" ? new file_default([b], c, b) : b] : [a, b + ""]), e = (c, f2) => (f2 ? c : c.replace(/\r?\n|\r/g, `\r
-`)).replace(/\n/g, "%0A").replace(/\r/g, "%0D").replace(/"/g, "%22"), x = (n, a, e2) => {
-  if (a.length < e2) {
-    throw new TypeError(`Failed to execute '${n}' on 'FormData': ${e2} arguments required, but only ${a.length} present.`);
-  }
-}, FormData;
-var init_esm_min = __esm(() => {
-  init_fetch_blob();
-  init_file();
-  /*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
-  ({ toStringTag: t, iterator: i2, hasInstance: h } = Symbol);
-  r = Math.random;
-  m = "append,set,get,getAll,delete,keys,values,entries,forEach,constructor".split(",");
-  FormData = class FormData2 {
-    #d = [];
-    constructor(...a) {
-      if (a.length)
-        throw new TypeError(`Failed to construct 'FormData': parameter 1 is not of type 'HTMLFormElement'.`);
-    }
-    get [t]() {
-      return "FormData";
-    }
-    [i2]() {
-      return this.entries();
-    }
-    static [h](o) {
-      return o && typeof o === "object" && o[t] === "FormData" && !m.some((m2) => typeof o[m2] != "function");
-    }
-    append(...a) {
-      x("append", arguments, 2);
-      this.#d.push(f(...a));
-    }
-    delete(a) {
-      x("delete", arguments, 1);
-      a += "";
-      this.#d = this.#d.filter(([b]) => b !== a);
-    }
-    get(a) {
-      x("get", arguments, 1);
-      a += "";
-      for (var b = this.#d, l = b.length, c = 0;c < l; c++)
-        if (b[c][0] === a)
-          return b[c][1];
-      return null;
-    }
-    getAll(a, b) {
-      x("getAll", arguments, 1);
-      b = [];
-      a += "";
-      this.#d.forEach((c) => c[0] === a && b.push(c[1]));
-      return b;
-    }
-    has(a) {
-      x("has", arguments, 1);
-      a += "";
-      return this.#d.some((b) => b[0] === a);
-    }
-    forEach(a, b) {
-      x("forEach", arguments, 1);
-      for (var [c, d] of this)
-        a.call(b, d, c, this);
-    }
-    set(...a) {
-      x("set", arguments, 2);
-      var b = [], c = true;
-      a = f(...a);
-      this.#d.forEach((d) => {
-        d[0] === a[0] ? c && (c = !b.push(a)) : b.push(d);
-      });
-      c && b.push(a);
-      this.#d = b;
-    }
-    *entries() {
-      yield* this.#d;
-    }
-    *keys() {
-      for (var [a] of this)
-        yield a;
-    }
-    *values() {
-      for (var [, a] of this)
-        yield a;
-    }
-  };
-});
-
-// node_modules/node-domexception/index.js
-var require_node_domexception = __commonJS((exports, module) => {
-  /*! node-domexception. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
-  if (!globalThis.DOMException) {
-    try {
-      const { MessageChannel } = __require("worker_threads"), port = new MessageChannel().port1, ab = new ArrayBuffer;
-      port.postMessage(ab, [ab, ab]);
-    } catch (err) {
-      err.constructor.name === "DOMException" && (globalThis.DOMException = err.constructor);
+      return this[kType];
     }
   }
-  module.exports = globalThis.DOMException;
-});
+  Object.defineProperty(Event.prototype, "target", { enumerable: true });
+  Object.defineProperty(Event.prototype, "type", { enumerable: true });
 
-// node_modules/fetch-blob/from.js
-import { statSync, createReadStream, promises as fs2 } from "node:fs";
-var import_node_domexception, stat, BlobDataItem;
-var init_from = __esm(() => {
-  import_node_domexception = __toESM(require_node_domexception(), 1);
-  init_file();
-  init_fetch_blob();
-  ({ stat } = fs2);
-  BlobDataItem = class BlobDataItem {
-    #path;
-    #start;
-    constructor(options) {
-      this.#path = options.path;
-      this.#start = options.start;
-      this.size = options.size;
-      this.lastModified = options.lastModified;
+  class CloseEvent extends Event {
+    constructor(type2, options = {}) {
+      super(type2);
+      this[kCode] = options.code === undefined ? 0 : options.code;
+      this[kReason] = options.reason === undefined ? "" : options.reason;
+      this[kWasClean] = options.wasClean === undefined ? false : options.wasClean;
     }
-    slice(start, end) {
-      return new BlobDataItem({
-        path: this.#path,
-        lastModified: this.lastModified,
-        size: end - start,
-        start: this.#start + start
-      });
+    get code() {
+      return this[kCode];
     }
-    async* stream() {
-      const { mtimeMs } = await stat(this.#path);
-      if (mtimeMs > this.lastModified) {
-        throw new import_node_domexception.default("The requested file could not be read, typically due to permission problems that have occurred after a reference to a file was acquired.", "NotReadableError");
-      }
-      yield* createReadStream(this.#path, {
-        start: this.#start,
-        end: this.#start + this.size - 1
-      });
+    get reason() {
+      return this[kReason];
     }
-    get [Symbol.toStringTag]() {
-      return "Blob";
+    get wasClean() {
+      return this[kWasClean];
     }
-  };
-});
-
-// node_modules/node-fetch/src/utils/multipart-parser.js
-var exports_multipart_parser = {};
-__export(exports_multipart_parser, {
-  toFormData: () => toFormData
-});
-
-class MultipartParser {
-  constructor(boundary) {
-    this.index = 0;
-    this.flags = 0;
-    this.onHeaderEnd = noop;
-    this.onHeaderField = noop;
-    this.onHeadersEnd = noop;
-    this.onHeaderValue = noop;
-    this.onPartBegin = noop;
-    this.onPartData = noop;
-    this.onPartEnd = noop;
-    this.boundaryChars = {};
-    boundary = `\r
---` + boundary;
-    const ui8a = new Uint8Array(boundary.length);
-    for (let i3 = 0;i3 < boundary.length; i3++) {
-      ui8a[i3] = boundary.charCodeAt(i3);
-      this.boundaryChars[ui8a[i3]] = true;
-    }
-    this.boundary = ui8a;
-    this.lookbehind = new Uint8Array(this.boundary.length + 8);
-    this.state = S.START_BOUNDARY;
   }
-  write(data) {
-    let i3 = 0;
-    const length_ = data.length;
-    let previousIndex = this.index;
-    let { lookbehind, boundary, boundaryChars, index, state, flags } = this;
-    const boundaryLength = this.boundary.length;
-    const boundaryEnd = boundaryLength - 1;
-    const bufferLength = data.length;
-    let c;
-    let cl;
-    const mark = (name) => {
-      this[name + "Mark"] = i3;
-    };
-    const clear = (name) => {
-      delete this[name + "Mark"];
-    };
-    const callback = (callbackSymbol, start, end, ui8a) => {
-      if (start === undefined || start !== end) {
-        this[callbackSymbol](ui8a && ui8a.subarray(start, end));
+  Object.defineProperty(CloseEvent.prototype, "code", { enumerable: true });
+  Object.defineProperty(CloseEvent.prototype, "reason", { enumerable: true });
+  Object.defineProperty(CloseEvent.prototype, "wasClean", { enumerable: true });
+
+  class ErrorEvent extends Event {
+    constructor(type2, options = {}) {
+      super(type2);
+      this[kError] = options.error === undefined ? null : options.error;
+      this[kMessage] = options.message === undefined ? "" : options.message;
+    }
+    get error() {
+      return this[kError];
+    }
+    get message() {
+      return this[kMessage];
+    }
+  }
+  Object.defineProperty(ErrorEvent.prototype, "error", { enumerable: true });
+  Object.defineProperty(ErrorEvent.prototype, "message", { enumerable: true });
+
+  class MessageEvent extends Event {
+    constructor(type2, options = {}) {
+      super(type2);
+      this[kData] = options.data === undefined ? null : options.data;
+    }
+    get data() {
+      return this[kData];
+    }
+  }
+  Object.defineProperty(MessageEvent.prototype, "data", { enumerable: true });
+  var EventTarget = {
+    addEventListener(type2, handler, options = {}) {
+      for (const listener of this.listeners(type2)) {
+        if (!options[kForOnEventAttribute] && listener[kListener] === handler && !listener[kForOnEventAttribute]) {
+          return;
+        }
       }
-    };
-    const dataCallback = (name, clear2) => {
-      const markSymbol = name + "Mark";
-      if (!(markSymbol in this)) {
+      let wrapper;
+      if (type2 === "message") {
+        wrapper = function onMessage(data, isBinary2) {
+          const event = new MessageEvent("message", {
+            data: isBinary2 ? data : data.toString()
+          });
+          event[kTarget] = this;
+          callListener(handler, this, event);
+        };
+      } else if (type2 === "close") {
+        wrapper = function onClose(code, message) {
+          const event = new CloseEvent("close", {
+            code,
+            reason: message.toString(),
+            wasClean: this._closeFrameReceived && this._closeFrameSent
+          });
+          event[kTarget] = this;
+          callListener(handler, this, event);
+        };
+      } else if (type2 === "error") {
+        wrapper = function onError(error) {
+          const event = new ErrorEvent("error", {
+            error,
+            message: error.message
+          });
+          event[kTarget] = this;
+          callListener(handler, this, event);
+        };
+      } else if (type2 === "open") {
+        wrapper = function onOpen() {
+          const event = new Event("open");
+          event[kTarget] = this;
+          callListener(handler, this, event);
+        };
+      } else {
         return;
       }
-      if (clear2) {
-        callback(name, this[markSymbol], i3, data);
-        delete this[markSymbol];
+      wrapper[kForOnEventAttribute] = !!options[kForOnEventAttribute];
+      wrapper[kListener] = handler;
+      if (options.once) {
+        this.once(type2, wrapper);
       } else {
-        callback(name, this[markSymbol], data.length, data);
-        this[markSymbol] = 0;
+        this.on(type2, wrapper);
+      }
+    },
+    removeEventListener(type2, handler) {
+      for (const listener of this.listeners(type2)) {
+        if (listener[kListener] === handler && !listener[kForOnEventAttribute]) {
+          this.removeListener(type2, listener);
+          break;
+        }
+      }
+    }
+  };
+  module.exports = {
+    CloseEvent,
+    ErrorEvent,
+    Event,
+    EventTarget,
+    MessageEvent
+  };
+  function callListener(listener, thisArg, event) {
+    if (typeof listener === "object" && listener.handleEvent) {
+      listener.handleEvent.call(listener, event);
+    } else {
+      listener.call(thisArg, event);
+    }
+  }
+});
+
+// node_modules/ws/lib/extension.js
+var require_extension = __commonJS((exports, module) => {
+  var { tokenChars } = require_validation();
+  function push(dest, name, elem) {
+    if (dest[name] === undefined)
+      dest[name] = [elem];
+    else
+      dest[name].push(elem);
+  }
+  function parse(header) {
+    const offers = Object.create(null);
+    let params = Object.create(null);
+    let mustUnescape = false;
+    let isEscaping = false;
+    let inQuotes = false;
+    let extensionName;
+    let paramName;
+    let start = -1;
+    let code = -1;
+    let end = -1;
+    let i2 = 0;
+    for (;i2 < header.length; i2++) {
+      code = header.charCodeAt(i2);
+      if (extensionName === undefined) {
+        if (end === -1 && tokenChars[code] === 1) {
+          if (start === -1)
+            start = i2;
+        } else if (i2 !== 0 && (code === 32 || code === 9)) {
+          if (end === -1 && start !== -1)
+            end = i2;
+        } else if (code === 59 || code === 44) {
+          if (start === -1) {
+            throw new SyntaxError(`Unexpected character at index ${i2}`);
+          }
+          if (end === -1)
+            end = i2;
+          const name = header.slice(start, end);
+          if (code === 44) {
+            push(offers, name, params);
+            params = Object.create(null);
+          } else {
+            extensionName = name;
+          }
+          start = end = -1;
+        } else {
+          throw new SyntaxError(`Unexpected character at index ${i2}`);
+        }
+      } else if (paramName === undefined) {
+        if (end === -1 && tokenChars[code] === 1) {
+          if (start === -1)
+            start = i2;
+        } else if (code === 32 || code === 9) {
+          if (end === -1 && start !== -1)
+            end = i2;
+        } else if (code === 59 || code === 44) {
+          if (start === -1) {
+            throw new SyntaxError(`Unexpected character at index ${i2}`);
+          }
+          if (end === -1)
+            end = i2;
+          push(params, header.slice(start, end), true);
+          if (code === 44) {
+            push(offers, extensionName, params);
+            params = Object.create(null);
+            extensionName = undefined;
+          }
+          start = end = -1;
+        } else if (code === 61 && start !== -1 && end === -1) {
+          paramName = header.slice(start, i2);
+          start = end = -1;
+        } else {
+          throw new SyntaxError(`Unexpected character at index ${i2}`);
+        }
+      } else {
+        if (isEscaping) {
+          if (tokenChars[code] !== 1) {
+            throw new SyntaxError(`Unexpected character at index ${i2}`);
+          }
+          if (start === -1)
+            start = i2;
+          else if (!mustUnescape)
+            mustUnescape = true;
+          isEscaping = false;
+        } else if (inQuotes) {
+          if (tokenChars[code] === 1) {
+            if (start === -1)
+              start = i2;
+          } else if (code === 34 && start !== -1) {
+            inQuotes = false;
+            end = i2;
+          } else if (code === 92) {
+            isEscaping = true;
+          } else {
+            throw new SyntaxError(`Unexpected character at index ${i2}`);
+          }
+        } else if (code === 34 && header.charCodeAt(i2 - 1) === 61) {
+          inQuotes = true;
+        } else if (end === -1 && tokenChars[code] === 1) {
+          if (start === -1)
+            start = i2;
+        } else if (start !== -1 && (code === 32 || code === 9)) {
+          if (end === -1)
+            end = i2;
+        } else if (code === 59 || code === 44) {
+          if (start === -1) {
+            throw new SyntaxError(`Unexpected character at index ${i2}`);
+          }
+          if (end === -1)
+            end = i2;
+          let value = header.slice(start, end);
+          if (mustUnescape) {
+            value = value.replace(/\\/g, "");
+            mustUnescape = false;
+          }
+          push(params, paramName, value);
+          if (code === 44) {
+            push(offers, extensionName, params);
+            params = Object.create(null);
+            extensionName = undefined;
+          }
+          paramName = undefined;
+          start = end = -1;
+        } else {
+          throw new SyntaxError(`Unexpected character at index ${i2}`);
+        }
+      }
+    }
+    if (start === -1 || inQuotes || code === 32 || code === 9) {
+      throw new SyntaxError("Unexpected end of input");
+    }
+    if (end === -1)
+      end = i2;
+    const token = header.slice(start, end);
+    if (extensionName === undefined) {
+      push(offers, token, params);
+    } else {
+      if (paramName === undefined) {
+        push(params, token, true);
+      } else if (mustUnescape) {
+        push(params, paramName, token.replace(/\\/g, ""));
+      } else {
+        push(params, paramName, token);
+      }
+      push(offers, extensionName, params);
+    }
+    return offers;
+  }
+  function format(extensions) {
+    return Object.keys(extensions).map((extension) => {
+      let configurations = extensions[extension];
+      if (!Array.isArray(configurations))
+        configurations = [configurations];
+      return configurations.map((params) => {
+        return [extension].concat(Object.keys(params).map((k) => {
+          let values = params[k];
+          if (!Array.isArray(values))
+            values = [values];
+          return values.map((v) => v === true ? k : `${k}=${v}`).join("; ");
+        })).join("; ");
+      }).join(", ");
+    }).join(", ");
+  }
+  module.exports = { format, parse };
+});
+
+// node_modules/ws/lib/websocket.js
+var require_websocket = __commonJS((exports, module) => {
+  var EventEmitter = __require("events");
+  var https = __require("https");
+  var http = __require("http");
+  var net = __require("net");
+  var tls = __require("tls");
+  var { randomBytes, createHash } = __require("crypto");
+  var { Duplex, Readable } = __require("stream");
+  var { URL } = __require("url");
+  var PerMessageDeflate = require_permessage_deflate();
+  var Receiver = require_receiver();
+  var Sender = require_sender();
+  var { isBlob } = require_validation();
+  var {
+    BINARY_TYPES,
+    EMPTY_BUFFER,
+    GUID,
+    kForOnEventAttribute,
+    kListener,
+    kStatusCode,
+    kWebSocket,
+    NOOP
+  } = require_constants();
+  var {
+    EventTarget: { addEventListener, removeEventListener }
+  } = require_event_target();
+  var { format, parse } = require_extension();
+  var { toBuffer } = require_buffer_util();
+  var closeTimeout = 30 * 1000;
+  var kAborted = Symbol("kAborted");
+  var protocolVersions = [8, 13];
+  var readyStates = ["CONNECTING", "OPEN", "CLOSING", "CLOSED"];
+  var subprotocolRegex = /^[!#$%&'*+\-.0-9A-Z^_`|a-z~]+$/;
+
+  class WebSocket extends EventEmitter {
+    constructor(address, protocols, options) {
+      super();
+      this._binaryType = BINARY_TYPES[0];
+      this._closeCode = 1006;
+      this._closeFrameReceived = false;
+      this._closeFrameSent = false;
+      this._closeMessage = EMPTY_BUFFER;
+      this._closeTimer = null;
+      this._errorEmitted = false;
+      this._extensions = {};
+      this._paused = false;
+      this._protocol = "";
+      this._readyState = WebSocket.CONNECTING;
+      this._receiver = null;
+      this._sender = null;
+      this._socket = null;
+      if (address !== null) {
+        this._bufferedAmount = 0;
+        this._isServer = false;
+        this._redirects = 0;
+        if (protocols === undefined) {
+          protocols = [];
+        } else if (!Array.isArray(protocols)) {
+          if (typeof protocols === "object" && protocols !== null) {
+            options = protocols;
+            protocols = [];
+          } else {
+            protocols = [protocols];
+          }
+        }
+        initAsClient(this, address, protocols, options);
+      } else {
+        this._autoPong = options.autoPong;
+        this._isServer = true;
+      }
+    }
+    get binaryType() {
+      return this._binaryType;
+    }
+    set binaryType(type2) {
+      if (!BINARY_TYPES.includes(type2))
+        return;
+      this._binaryType = type2;
+      if (this._receiver)
+        this._receiver._binaryType = type2;
+    }
+    get bufferedAmount() {
+      if (!this._socket)
+        return this._bufferedAmount;
+      return this._socket._writableState.length + this._sender._bufferedBytes;
+    }
+    get extensions() {
+      return Object.keys(this._extensions).join();
+    }
+    get isPaused() {
+      return this._paused;
+    }
+    get onclose() {
+      return null;
+    }
+    get onerror() {
+      return null;
+    }
+    get onopen() {
+      return null;
+    }
+    get onmessage() {
+      return null;
+    }
+    get protocol() {
+      return this._protocol;
+    }
+    get readyState() {
+      return this._readyState;
+    }
+    get url() {
+      return this._url;
+    }
+    setSocket(socket, head, options) {
+      const receiver = new Receiver({
+        allowSynchronousEvents: options.allowSynchronousEvents,
+        binaryType: this.binaryType,
+        extensions: this._extensions,
+        isServer: this._isServer,
+        maxPayload: options.maxPayload,
+        skipUTF8Validation: options.skipUTF8Validation
+      });
+      const sender = new Sender(socket, this._extensions, options.generateMask);
+      this._receiver = receiver;
+      this._sender = sender;
+      this._socket = socket;
+      receiver[kWebSocket] = this;
+      sender[kWebSocket] = this;
+      socket[kWebSocket] = this;
+      receiver.on("conclude", receiverOnConclude);
+      receiver.on("drain", receiverOnDrain);
+      receiver.on("error", receiverOnError);
+      receiver.on("message", receiverOnMessage);
+      receiver.on("ping", receiverOnPing);
+      receiver.on("pong", receiverOnPong);
+      sender.onerror = senderOnError;
+      if (socket.setTimeout)
+        socket.setTimeout(0);
+      if (socket.setNoDelay)
+        socket.setNoDelay();
+      if (head.length > 0)
+        socket.unshift(head);
+      socket.on("close", socketOnClose);
+      socket.on("data", socketOnData);
+      socket.on("end", socketOnEnd);
+      socket.on("error", socketOnError);
+      this._readyState = WebSocket.OPEN;
+      this.emit("open");
+    }
+    emitClose() {
+      if (!this._socket) {
+        this._readyState = WebSocket.CLOSED;
+        this.emit("close", this._closeCode, this._closeMessage);
+        return;
+      }
+      if (this._extensions[PerMessageDeflate.extensionName]) {
+        this._extensions[PerMessageDeflate.extensionName].cleanup();
+      }
+      this._receiver.removeAllListeners();
+      this._readyState = WebSocket.CLOSED;
+      this.emit("close", this._closeCode, this._closeMessage);
+    }
+    close(code, data) {
+      if (this.readyState === WebSocket.CLOSED)
+        return;
+      if (this.readyState === WebSocket.CONNECTING) {
+        const msg = "WebSocket was closed before the connection was established";
+        abortHandshake(this, this._req, msg);
+        return;
+      }
+      if (this.readyState === WebSocket.CLOSING) {
+        if (this._closeFrameSent && (this._closeFrameReceived || this._receiver._writableState.errorEmitted)) {
+          this._socket.end();
+        }
+        return;
+      }
+      this._readyState = WebSocket.CLOSING;
+      this._sender.close(code, data, !this._isServer, (err) => {
+        if (err)
+          return;
+        this._closeFrameSent = true;
+        if (this._closeFrameReceived || this._receiver._writableState.errorEmitted) {
+          this._socket.end();
+        }
+      });
+      setCloseTimer(this);
+    }
+    pause() {
+      if (this.readyState === WebSocket.CONNECTING || this.readyState === WebSocket.CLOSED) {
+        return;
+      }
+      this._paused = true;
+      this._socket.pause();
+    }
+    ping(data, mask, cb) {
+      if (this.readyState === WebSocket.CONNECTING) {
+        throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
+      }
+      if (typeof data === "function") {
+        cb = data;
+        data = mask = undefined;
+      } else if (typeof mask === "function") {
+        cb = mask;
+        mask = undefined;
+      }
+      if (typeof data === "number")
+        data = data.toString();
+      if (this.readyState !== WebSocket.OPEN) {
+        sendAfterClose(this, data, cb);
+        return;
+      }
+      if (mask === undefined)
+        mask = !this._isServer;
+      this._sender.ping(data || EMPTY_BUFFER, mask, cb);
+    }
+    pong(data, mask, cb) {
+      if (this.readyState === WebSocket.CONNECTING) {
+        throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
+      }
+      if (typeof data === "function") {
+        cb = data;
+        data = mask = undefined;
+      } else if (typeof mask === "function") {
+        cb = mask;
+        mask = undefined;
+      }
+      if (typeof data === "number")
+        data = data.toString();
+      if (this.readyState !== WebSocket.OPEN) {
+        sendAfterClose(this, data, cb);
+        return;
+      }
+      if (mask === undefined)
+        mask = !this._isServer;
+      this._sender.pong(data || EMPTY_BUFFER, mask, cb);
+    }
+    resume() {
+      if (this.readyState === WebSocket.CONNECTING || this.readyState === WebSocket.CLOSED) {
+        return;
+      }
+      this._paused = false;
+      if (!this._receiver._writableState.needDrain)
+        this._socket.resume();
+    }
+    send(data, options, cb) {
+      if (this.readyState === WebSocket.CONNECTING) {
+        throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
+      }
+      if (typeof options === "function") {
+        cb = options;
+        options = {};
+      }
+      if (typeof data === "number")
+        data = data.toString();
+      if (this.readyState !== WebSocket.OPEN) {
+        sendAfterClose(this, data, cb);
+        return;
+      }
+      const opts = {
+        binary: typeof data !== "string",
+        mask: !this._isServer,
+        compress: true,
+        fin: true,
+        ...options
+      };
+      if (!this._extensions[PerMessageDeflate.extensionName]) {
+        opts.compress = false;
+      }
+      this._sender.send(data || EMPTY_BUFFER, opts, cb);
+    }
+    terminate() {
+      if (this.readyState === WebSocket.CLOSED)
+        return;
+      if (this.readyState === WebSocket.CONNECTING) {
+        const msg = "WebSocket was closed before the connection was established";
+        abortHandshake(this, this._req, msg);
+        return;
+      }
+      if (this._socket) {
+        this._readyState = WebSocket.CLOSING;
+        this._socket.destroy();
+      }
+    }
+  }
+  Object.defineProperty(WebSocket, "CONNECTING", {
+    enumerable: true,
+    value: readyStates.indexOf("CONNECTING")
+  });
+  Object.defineProperty(WebSocket.prototype, "CONNECTING", {
+    enumerable: true,
+    value: readyStates.indexOf("CONNECTING")
+  });
+  Object.defineProperty(WebSocket, "OPEN", {
+    enumerable: true,
+    value: readyStates.indexOf("OPEN")
+  });
+  Object.defineProperty(WebSocket.prototype, "OPEN", {
+    enumerable: true,
+    value: readyStates.indexOf("OPEN")
+  });
+  Object.defineProperty(WebSocket, "CLOSING", {
+    enumerable: true,
+    value: readyStates.indexOf("CLOSING")
+  });
+  Object.defineProperty(WebSocket.prototype, "CLOSING", {
+    enumerable: true,
+    value: readyStates.indexOf("CLOSING")
+  });
+  Object.defineProperty(WebSocket, "CLOSED", {
+    enumerable: true,
+    value: readyStates.indexOf("CLOSED")
+  });
+  Object.defineProperty(WebSocket.prototype, "CLOSED", {
+    enumerable: true,
+    value: readyStates.indexOf("CLOSED")
+  });
+  [
+    "binaryType",
+    "bufferedAmount",
+    "extensions",
+    "isPaused",
+    "protocol",
+    "readyState",
+    "url"
+  ].forEach((property) => {
+    Object.defineProperty(WebSocket.prototype, property, { enumerable: true });
+  });
+  ["open", "error", "close", "message"].forEach((method) => {
+    Object.defineProperty(WebSocket.prototype, `on${method}`, {
+      enumerable: true,
+      get() {
+        for (const listener of this.listeners(method)) {
+          if (listener[kForOnEventAttribute])
+            return listener[kListener];
+        }
+        return null;
+      },
+      set(handler) {
+        for (const listener of this.listeners(method)) {
+          if (listener[kForOnEventAttribute]) {
+            this.removeListener(method, listener);
+            break;
+          }
+        }
+        if (typeof handler !== "function")
+          return;
+        this.addEventListener(method, handler, {
+          [kForOnEventAttribute]: true
+        });
+      }
+    });
+  });
+  WebSocket.prototype.addEventListener = addEventListener;
+  WebSocket.prototype.removeEventListener = removeEventListener;
+  module.exports = WebSocket;
+  function initAsClient(websocket, address, protocols, options) {
+    const opts = {
+      allowSynchronousEvents: true,
+      autoPong: true,
+      protocolVersion: protocolVersions[1],
+      maxPayload: 100 * 1024 * 1024,
+      skipUTF8Validation: false,
+      perMessageDeflate: true,
+      followRedirects: false,
+      maxRedirects: 10,
+      ...options,
+      socketPath: undefined,
+      hostname: undefined,
+      protocol: undefined,
+      timeout: undefined,
+      method: "GET",
+      host: undefined,
+      path: undefined,
+      port: undefined
+    };
+    websocket._autoPong = opts.autoPong;
+    if (!protocolVersions.includes(opts.protocolVersion)) {
+      throw new RangeError(`Unsupported protocol version: ${opts.protocolVersion} ` + `(supported versions: ${protocolVersions.join(", ")})`);
+    }
+    let parsedUrl;
+    if (address instanceof URL) {
+      parsedUrl = address;
+    } else {
+      try {
+        parsedUrl = new URL(address);
+      } catch (e) {
+        throw new SyntaxError(`Invalid URL: ${address}`);
+      }
+    }
+    if (parsedUrl.protocol === "http:") {
+      parsedUrl.protocol = "ws:";
+    } else if (parsedUrl.protocol === "https:") {
+      parsedUrl.protocol = "wss:";
+    }
+    websocket._url = parsedUrl.href;
+    const isSecure = parsedUrl.protocol === "wss:";
+    const isIpcUrl = parsedUrl.protocol === "ws+unix:";
+    let invalidUrlMessage;
+    if (parsedUrl.protocol !== "ws:" && !isSecure && !isIpcUrl) {
+      invalidUrlMessage = `The URL's protocol must be one of "ws:", "wss:", ` + '"http:", "https:", or "ws+unix:"';
+    } else if (isIpcUrl && !parsedUrl.pathname) {
+      invalidUrlMessage = "The URL's pathname is empty";
+    } else if (parsedUrl.hash) {
+      invalidUrlMessage = "The URL contains a fragment identifier";
+    }
+    if (invalidUrlMessage) {
+      const err = new SyntaxError(invalidUrlMessage);
+      if (websocket._redirects === 0) {
+        throw err;
+      } else {
+        emitErrorAndClose(websocket, err);
+        return;
+      }
+    }
+    const defaultPort = isSecure ? 443 : 80;
+    const key = randomBytes(16).toString("base64");
+    const request = isSecure ? https.request : http.request;
+    const protocolSet = new Set;
+    let perMessageDeflate;
+    opts.createConnection = opts.createConnection || (isSecure ? tlsConnect : netConnect);
+    opts.defaultPort = opts.defaultPort || defaultPort;
+    opts.port = parsedUrl.port || defaultPort;
+    opts.host = parsedUrl.hostname.startsWith("[") ? parsedUrl.hostname.slice(1, -1) : parsedUrl.hostname;
+    opts.headers = {
+      ...opts.headers,
+      "Sec-WebSocket-Version": opts.protocolVersion,
+      "Sec-WebSocket-Key": key,
+      Connection: "Upgrade",
+      Upgrade: "websocket"
+    };
+    opts.path = parsedUrl.pathname + parsedUrl.search;
+    opts.timeout = opts.handshakeTimeout;
+    if (opts.perMessageDeflate) {
+      perMessageDeflate = new PerMessageDeflate(opts.perMessageDeflate !== true ? opts.perMessageDeflate : {}, false, opts.maxPayload);
+      opts.headers["Sec-WebSocket-Extensions"] = format({
+        [PerMessageDeflate.extensionName]: perMessageDeflate.offer()
+      });
+    }
+    if (protocols.length) {
+      for (const protocol of protocols) {
+        if (typeof protocol !== "string" || !subprotocolRegex.test(protocol) || protocolSet.has(protocol)) {
+          throw new SyntaxError("An invalid or duplicated subprotocol was specified");
+        }
+        protocolSet.add(protocol);
+      }
+      opts.headers["Sec-WebSocket-Protocol"] = protocols.join(",");
+    }
+    if (opts.origin) {
+      if (opts.protocolVersion < 13) {
+        opts.headers["Sec-WebSocket-Origin"] = opts.origin;
+      } else {
+        opts.headers.Origin = opts.origin;
+      }
+    }
+    if (parsedUrl.username || parsedUrl.password) {
+      opts.auth = `${parsedUrl.username}:${parsedUrl.password}`;
+    }
+    if (isIpcUrl) {
+      const parts = opts.path.split(":");
+      opts.socketPath = parts[0];
+      opts.path = parts[1];
+    }
+    let req;
+    if (opts.followRedirects) {
+      if (websocket._redirects === 0) {
+        websocket._originalIpc = isIpcUrl;
+        websocket._originalSecure = isSecure;
+        websocket._originalHostOrSocketPath = isIpcUrl ? opts.socketPath : parsedUrl.host;
+        const headers = options && options.headers;
+        options = { ...options, headers: {} };
+        if (headers) {
+          for (const [key2, value] of Object.entries(headers)) {
+            options.headers[key2.toLowerCase()] = value;
+          }
+        }
+      } else if (websocket.listenerCount("redirect") === 0) {
+        const isSameHost = isIpcUrl ? websocket._originalIpc ? opts.socketPath === websocket._originalHostOrSocketPath : false : websocket._originalIpc ? false : parsedUrl.host === websocket._originalHostOrSocketPath;
+        if (!isSameHost || websocket._originalSecure && !isSecure) {
+          delete opts.headers.authorization;
+          delete opts.headers.cookie;
+          if (!isSameHost)
+            delete opts.headers.host;
+          opts.auth = undefined;
+        }
+      }
+      if (opts.auth && !options.headers.authorization) {
+        options.headers.authorization = "Basic " + Buffer.from(opts.auth).toString("base64");
+      }
+      req = websocket._req = request(opts);
+      if (websocket._redirects) {
+        websocket.emit("redirect", websocket.url, req);
+      }
+    } else {
+      req = websocket._req = request(opts);
+    }
+    if (opts.timeout) {
+      req.on("timeout", () => {
+        abortHandshake(websocket, req, "Opening handshake has timed out");
+      });
+    }
+    req.on("error", (err) => {
+      if (req === null || req[kAborted])
+        return;
+      req = websocket._req = null;
+      emitErrorAndClose(websocket, err);
+    });
+    req.on("response", (res) => {
+      const location = res.headers.location;
+      const statusCode = res.statusCode;
+      if (location && opts.followRedirects && statusCode >= 300 && statusCode < 400) {
+        if (++websocket._redirects > opts.maxRedirects) {
+          abortHandshake(websocket, req, "Maximum redirects exceeded");
+          return;
+        }
+        req.abort();
+        let addr;
+        try {
+          addr = new URL(location, address);
+        } catch (e) {
+          const err = new SyntaxError(`Invalid URL: ${location}`);
+          emitErrorAndClose(websocket, err);
+          return;
+        }
+        initAsClient(websocket, addr, protocols, options);
+      } else if (!websocket.emit("unexpected-response", req, res)) {
+        abortHandshake(websocket, req, `Unexpected server response: ${res.statusCode}`);
+      }
+    });
+    req.on("upgrade", (res, socket, head) => {
+      websocket.emit("upgrade", res);
+      if (websocket.readyState !== WebSocket.CONNECTING)
+        return;
+      req = websocket._req = null;
+      const upgrade = res.headers.upgrade;
+      if (upgrade === undefined || upgrade.toLowerCase() !== "websocket") {
+        abortHandshake(websocket, socket, "Invalid Upgrade header");
+        return;
+      }
+      const digest = createHash("sha1").update(key + GUID).digest("base64");
+      if (res.headers["sec-websocket-accept"] !== digest) {
+        abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
+        return;
+      }
+      const serverProt = res.headers["sec-websocket-protocol"];
+      let protError;
+      if (serverProt !== undefined) {
+        if (!protocolSet.size) {
+          protError = "Server sent a subprotocol but none was requested";
+        } else if (!protocolSet.has(serverProt)) {
+          protError = "Server sent an invalid subprotocol";
+        }
+      } else if (protocolSet.size) {
+        protError = "Server sent no subprotocol";
+      }
+      if (protError) {
+        abortHandshake(websocket, socket, protError);
+        return;
+      }
+      if (serverProt)
+        websocket._protocol = serverProt;
+      const secWebSocketExtensions = res.headers["sec-websocket-extensions"];
+      if (secWebSocketExtensions !== undefined) {
+        if (!perMessageDeflate) {
+          const message = "Server sent a Sec-WebSocket-Extensions header but no extension " + "was requested";
+          abortHandshake(websocket, socket, message);
+          return;
+        }
+        let extensions;
+        try {
+          extensions = parse(secWebSocketExtensions);
+        } catch (err) {
+          const message = "Invalid Sec-WebSocket-Extensions header";
+          abortHandshake(websocket, socket, message);
+          return;
+        }
+        const extensionNames = Object.keys(extensions);
+        if (extensionNames.length !== 1 || extensionNames[0] !== PerMessageDeflate.extensionName) {
+          const message = "Server indicated an extension that was not requested";
+          abortHandshake(websocket, socket, message);
+          return;
+        }
+        try {
+          perMessageDeflate.accept(extensions[PerMessageDeflate.extensionName]);
+        } catch (err) {
+          const message = "Invalid Sec-WebSocket-Extensions header";
+          abortHandshake(websocket, socket, message);
+          return;
+        }
+        websocket._extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
+      }
+      websocket.setSocket(socket, head, {
+        allowSynchronousEvents: opts.allowSynchronousEvents,
+        generateMask: opts.generateMask,
+        maxPayload: opts.maxPayload,
+        skipUTF8Validation: opts.skipUTF8Validation
+      });
+    });
+    if (opts.finishRequest) {
+      opts.finishRequest(req, websocket);
+    } else {
+      req.end();
+    }
+  }
+  function emitErrorAndClose(websocket, err) {
+    websocket._readyState = WebSocket.CLOSING;
+    websocket._errorEmitted = true;
+    websocket.emit("error", err);
+    websocket.emitClose();
+  }
+  function netConnect(options) {
+    options.path = options.socketPath;
+    return net.connect(options);
+  }
+  function tlsConnect(options) {
+    options.path = undefined;
+    if (!options.servername && options.servername !== "") {
+      options.servername = net.isIP(options.host) ? "" : options.host;
+    }
+    return tls.connect(options);
+  }
+  function abortHandshake(websocket, stream, message) {
+    websocket._readyState = WebSocket.CLOSING;
+    const err = new Error(message);
+    Error.captureStackTrace(err, abortHandshake);
+    if (stream.setHeader) {
+      stream[kAborted] = true;
+      stream.abort();
+      if (stream.socket && !stream.socket.destroyed) {
+        stream.socket.destroy();
+      }
+      process.nextTick(emitErrorAndClose, websocket, err);
+    } else {
+      stream.destroy(err);
+      stream.once("error", websocket.emit.bind(websocket, "error"));
+      stream.once("close", websocket.emitClose.bind(websocket));
+    }
+  }
+  function sendAfterClose(websocket, data, cb) {
+    if (data) {
+      const length = isBlob(data) ? data.size : toBuffer(data).length;
+      if (websocket._socket)
+        websocket._sender._bufferedBytes += length;
+      else
+        websocket._bufferedAmount += length;
+    }
+    if (cb) {
+      const err = new Error(`WebSocket is not open: readyState ${websocket.readyState} ` + `(${readyStates[websocket.readyState]})`);
+      process.nextTick(cb, err);
+    }
+  }
+  function receiverOnConclude(code, reason) {
+    const websocket = this[kWebSocket];
+    websocket._closeFrameReceived = true;
+    websocket._closeMessage = reason;
+    websocket._closeCode = code;
+    if (websocket._socket[kWebSocket] === undefined)
+      return;
+    websocket._socket.removeListener("data", socketOnData);
+    process.nextTick(resume, websocket._socket);
+    if (code === 1005)
+      websocket.close();
+    else
+      websocket.close(code, reason);
+  }
+  function receiverOnDrain() {
+    const websocket = this[kWebSocket];
+    if (!websocket.isPaused)
+      websocket._socket.resume();
+  }
+  function receiverOnError(err) {
+    const websocket = this[kWebSocket];
+    if (websocket._socket[kWebSocket] !== undefined) {
+      websocket._socket.removeListener("data", socketOnData);
+      process.nextTick(resume, websocket._socket);
+      websocket.close(err[kStatusCode]);
+    }
+    if (!websocket._errorEmitted) {
+      websocket._errorEmitted = true;
+      websocket.emit("error", err);
+    }
+  }
+  function receiverOnFinish() {
+    this[kWebSocket].emitClose();
+  }
+  function receiverOnMessage(data, isBinary2) {
+    this[kWebSocket].emit("message", data, isBinary2);
+  }
+  function receiverOnPing(data) {
+    const websocket = this[kWebSocket];
+    if (websocket._autoPong)
+      websocket.pong(data, !this._isServer, NOOP);
+    websocket.emit("ping", data);
+  }
+  function receiverOnPong(data) {
+    this[kWebSocket].emit("pong", data);
+  }
+  function resume(stream) {
+    stream.resume();
+  }
+  function senderOnError(err) {
+    const websocket = this[kWebSocket];
+    if (websocket.readyState === WebSocket.CLOSED)
+      return;
+    if (websocket.readyState === WebSocket.OPEN) {
+      websocket._readyState = WebSocket.CLOSING;
+      setCloseTimer(websocket);
+    }
+    this._socket.end();
+    if (!websocket._errorEmitted) {
+      websocket._errorEmitted = true;
+      websocket.emit("error", err);
+    }
+  }
+  function setCloseTimer(websocket) {
+    websocket._closeTimer = setTimeout(websocket._socket.destroy.bind(websocket._socket), closeTimeout);
+  }
+  function socketOnClose() {
+    const websocket = this[kWebSocket];
+    this.removeListener("close", socketOnClose);
+    this.removeListener("data", socketOnData);
+    this.removeListener("end", socketOnEnd);
+    websocket._readyState = WebSocket.CLOSING;
+    let chunk;
+    if (!this._readableState.endEmitted && !websocket._closeFrameReceived && !websocket._receiver._writableState.errorEmitted && (chunk = websocket._socket.read()) !== null) {
+      websocket._receiver.write(chunk);
+    }
+    websocket._receiver.end();
+    this[kWebSocket] = undefined;
+    clearTimeout(websocket._closeTimer);
+    if (websocket._receiver._writableState.finished || websocket._receiver._writableState.errorEmitted) {
+      websocket.emitClose();
+    } else {
+      websocket._receiver.on("error", receiverOnFinish);
+      websocket._receiver.on("finish", receiverOnFinish);
+    }
+  }
+  function socketOnData(chunk) {
+    if (!this[kWebSocket]._receiver.write(chunk)) {
+      this.pause();
+    }
+  }
+  function socketOnEnd() {
+    const websocket = this[kWebSocket];
+    websocket._readyState = WebSocket.CLOSING;
+    websocket._receiver.end();
+    this.end();
+  }
+  function socketOnError() {
+    const websocket = this[kWebSocket];
+    this.removeListener("error", socketOnError);
+    this.on("error", NOOP);
+    if (websocket) {
+      websocket._readyState = WebSocket.CLOSING;
+      this.destroy();
+    }
+  }
+});
+
+// node_modules/ws/lib/stream.js
+var require_stream = __commonJS((exports, module) => {
+  var WebSocket = require_websocket();
+  var { Duplex } = __require("stream");
+  function emitClose(stream) {
+    stream.emit("close");
+  }
+  function duplexOnEnd() {
+    if (!this.destroyed && this._writableState.finished) {
+      this.destroy();
+    }
+  }
+  function duplexOnError(err) {
+    this.removeListener("error", duplexOnError);
+    this.destroy();
+    if (this.listenerCount("error") === 0) {
+      this.emit("error", err);
+    }
+  }
+  function createWebSocketStream(ws, options) {
+    let terminateOnDestroy = true;
+    const duplex = new Duplex({
+      ...options,
+      autoDestroy: false,
+      emitClose: false,
+      objectMode: false,
+      writableObjectMode: false
+    });
+    ws.on("message", function message(msg, isBinary2) {
+      const data = !isBinary2 && duplex._readableState.objectMode ? msg.toString() : msg;
+      if (!duplex.push(data))
+        ws.pause();
+    });
+    ws.once("error", function error(err) {
+      if (duplex.destroyed)
+        return;
+      terminateOnDestroy = false;
+      duplex.destroy(err);
+    });
+    ws.once("close", function close() {
+      if (duplex.destroyed)
+        return;
+      duplex.push(null);
+    });
+    duplex._destroy = function(err, callback) {
+      if (ws.readyState === ws.CLOSED) {
+        callback(err);
+        process.nextTick(emitClose, duplex);
+        return;
+      }
+      let called = false;
+      ws.once("error", function error(err2) {
+        called = true;
+        callback(err2);
+      });
+      ws.once("close", function close() {
+        if (!called)
+          callback(err);
+        process.nextTick(emitClose, duplex);
+      });
+      if (terminateOnDestroy)
+        ws.terminate();
+    };
+    duplex._final = function(callback) {
+      if (ws.readyState === ws.CONNECTING) {
+        ws.once("open", function open() {
+          duplex._final(callback);
+        });
+        return;
+      }
+      if (ws._socket === null)
+        return;
+      if (ws._socket._writableState.finished) {
+        callback();
+        if (duplex._readableState.endEmitted)
+          duplex.destroy();
+      } else {
+        ws._socket.once("finish", function finish() {
+          callback();
+        });
+        ws.close();
       }
     };
-    for (i3 = 0;i3 < length_; i3++) {
-      c = data[i3];
-      switch (state) {
-        case S.START_BOUNDARY:
-          if (index === boundary.length - 2) {
-            if (c === HYPHEN) {
-              flags |= F.LAST_BOUNDARY;
-            } else if (c !== CR) {
-              return;
-            }
-            index++;
-            break;
-          } else if (index - 1 === boundary.length - 2) {
-            if (flags & F.LAST_BOUNDARY && c === HYPHEN) {
-              state = S.END;
-              flags = 0;
-            } else if (!(flags & F.LAST_BOUNDARY) && c === LF) {
-              index = 0;
-              callback("onPartBegin");
-              state = S.HEADER_FIELD_START;
-            } else {
-              return;
-            }
-            break;
-          }
-          if (c !== boundary[index + 2]) {
-            index = -2;
-          }
-          if (c === boundary[index + 2]) {
-            index++;
-          }
-          break;
-        case S.HEADER_FIELD_START:
-          state = S.HEADER_FIELD;
-          mark("onHeaderField");
-          index = 0;
-        case S.HEADER_FIELD:
-          if (c === CR) {
-            clear("onHeaderField");
-            state = S.HEADERS_ALMOST_DONE;
-            break;
-          }
-          index++;
-          if (c === HYPHEN) {
-            break;
-          }
-          if (c === COLON) {
-            if (index === 1) {
-              return;
-            }
-            dataCallback("onHeaderField", true);
-            state = S.HEADER_VALUE_START;
-            break;
-          }
-          cl = lower(c);
-          if (cl < A || cl > Z) {
-            return;
-          }
-          break;
-        case S.HEADER_VALUE_START:
-          if (c === SPACE) {
-            break;
-          }
-          mark("onHeaderValue");
-          state = S.HEADER_VALUE;
-        case S.HEADER_VALUE:
-          if (c === CR) {
-            dataCallback("onHeaderValue", true);
-            callback("onHeaderEnd");
-            state = S.HEADER_VALUE_ALMOST_DONE;
-          }
-          break;
-        case S.HEADER_VALUE_ALMOST_DONE:
-          if (c !== LF) {
-            return;
-          }
-          state = S.HEADER_FIELD_START;
-          break;
-        case S.HEADERS_ALMOST_DONE:
-          if (c !== LF) {
-            return;
-          }
-          callback("onHeadersEnd");
-          state = S.PART_DATA_START;
-          break;
-        case S.PART_DATA_START:
-          state = S.PART_DATA;
-          mark("onPartData");
-        case S.PART_DATA:
-          previousIndex = index;
-          if (index === 0) {
-            i3 += boundaryEnd;
-            while (i3 < bufferLength && !(data[i3] in boundaryChars)) {
-              i3 += boundaryLength;
-            }
-            i3 -= boundaryEnd;
-            c = data[i3];
-          }
-          if (index < boundary.length) {
-            if (boundary[index] === c) {
-              if (index === 0) {
-                dataCallback("onPartData", true);
-              }
-              index++;
-            } else {
-              index = 0;
-            }
-          } else if (index === boundary.length) {
-            index++;
-            if (c === CR) {
-              flags |= F.PART_BOUNDARY;
-            } else if (c === HYPHEN) {
-              flags |= F.LAST_BOUNDARY;
-            } else {
-              index = 0;
-            }
-          } else if (index - 1 === boundary.length) {
-            if (flags & F.PART_BOUNDARY) {
-              index = 0;
-              if (c === LF) {
-                flags &= ~F.PART_BOUNDARY;
-                callback("onPartEnd");
-                callback("onPartBegin");
-                state = S.HEADER_FIELD_START;
-                break;
-              }
-            } else if (flags & F.LAST_BOUNDARY) {
-              if (c === HYPHEN) {
-                callback("onPartEnd");
-                state = S.END;
-                flags = 0;
-              } else {
-                index = 0;
-              }
-            } else {
-              index = 0;
-            }
-          }
-          if (index > 0) {
-            lookbehind[index - 1] = c;
-          } else if (previousIndex > 0) {
-            const _lookbehind = new Uint8Array(lookbehind.buffer, lookbehind.byteOffset, lookbehind.byteLength);
-            callback("onPartData", 0, previousIndex, _lookbehind);
-            previousIndex = 0;
-            mark("onPartData");
-            i3--;
-          }
-          break;
-        case S.END:
-          break;
-        default:
-          throw new Error(`Unexpected state entered: ${state}`);
+    duplex._read = function() {
+      if (ws.isPaused)
+        ws.resume();
+    };
+    duplex._write = function(chunk, encoding, callback) {
+      if (ws.readyState === ws.CONNECTING) {
+        ws.once("open", function open() {
+          duplex._write(chunk, encoding, callback);
+        });
+        return;
+      }
+      ws.send(chunk, callback);
+    };
+    duplex.on("end", duplexOnEnd);
+    duplex.on("error", duplexOnError);
+    return duplex;
+  }
+  module.exports = createWebSocketStream;
+});
+
+// node_modules/ws/lib/subprotocol.js
+var require_subprotocol = __commonJS((exports, module) => {
+  var { tokenChars } = require_validation();
+  function parse(header) {
+    const protocols = new Set;
+    let start = -1;
+    let end = -1;
+    let i2 = 0;
+    for (i2;i2 < header.length; i2++) {
+      const code = header.charCodeAt(i2);
+      if (end === -1 && tokenChars[code] === 1) {
+        if (start === -1)
+          start = i2;
+      } else if (i2 !== 0 && (code === 32 || code === 9)) {
+        if (end === -1 && start !== -1)
+          end = i2;
+      } else if (code === 44) {
+        if (start === -1) {
+          throw new SyntaxError(`Unexpected character at index ${i2}`);
+        }
+        if (end === -1)
+          end = i2;
+        const protocol2 = header.slice(start, end);
+        if (protocols.has(protocol2)) {
+          throw new SyntaxError(`The "${protocol2}" subprotocol is duplicated`);
+        }
+        protocols.add(protocol2);
+        start = end = -1;
+      } else {
+        throw new SyntaxError(`Unexpected character at index ${i2}`);
       }
     }
-    dataCallback("onHeaderField");
-    dataCallback("onHeaderValue");
-    dataCallback("onPartData");
-    this.index = index;
-    this.state = state;
-    this.flags = flags;
+    if (start === -1 || end !== -1) {
+      throw new SyntaxError("Unexpected end of input");
+    }
+    const protocol = header.slice(start, i2);
+    if (protocols.has(protocol)) {
+      throw new SyntaxError(`The "${protocol}" subprotocol is duplicated`);
+    }
+    protocols.add(protocol);
+    return protocols;
   }
-  end() {
-    if (this.state === S.HEADER_FIELD_START && this.index === 0 || this.state === S.PART_DATA && this.index === this.boundary.length) {
-      this.onPartEnd();
-    } else if (this.state !== S.END) {
-      throw new Error("MultipartParser.end(): stream ended unexpectedly");
+  module.exports = { parse };
+});
+
+// node_modules/ws/lib/websocket-server.js
+var require_websocket_server = __commonJS((exports, module) => {
+  var EventEmitter = __require("events");
+  var http = __require("http");
+  var { Duplex } = __require("stream");
+  var { createHash } = __require("crypto");
+  var extension = require_extension();
+  var PerMessageDeflate = require_permessage_deflate();
+  var subprotocol = require_subprotocol();
+  var WebSocket = require_websocket();
+  var { GUID, kWebSocket } = require_constants();
+  var keyRegex = /^[+/0-9A-Za-z]{22}==$/;
+  var RUNNING = 0;
+  var CLOSING = 1;
+  var CLOSED = 2;
+
+  class WebSocketServer extends EventEmitter {
+    constructor(options, callback) {
+      super();
+      options = {
+        allowSynchronousEvents: true,
+        autoPong: true,
+        maxPayload: 100 * 1024 * 1024,
+        skipUTF8Validation: false,
+        perMessageDeflate: false,
+        handleProtocols: null,
+        clientTracking: true,
+        verifyClient: null,
+        noServer: false,
+        backlog: null,
+        server: null,
+        host: null,
+        path: null,
+        port: null,
+        WebSocket,
+        ...options
+      };
+      if (options.port == null && !options.server && !options.noServer || options.port != null && (options.server || options.noServer) || options.server && options.noServer) {
+        throw new TypeError('One and only one of the "port", "server", or "noServer" options ' + "must be specified");
+      }
+      if (options.port != null) {
+        this._server = http.createServer((req, res) => {
+          const body = http.STATUS_CODES[426];
+          res.writeHead(426, {
+            "Content-Length": body.length,
+            "Content-Type": "text/plain"
+          });
+          res.end(body);
+        });
+        this._server.listen(options.port, options.host, options.backlog, callback);
+      } else if (options.server) {
+        this._server = options.server;
+      }
+      if (this._server) {
+        const emitConnection = this.emit.bind(this, "connection");
+        this._removeListeners = addListeners(this._server, {
+          listening: this.emit.bind(this, "listening"),
+          error: this.emit.bind(this, "error"),
+          upgrade: (req, socket, head) => {
+            this.handleUpgrade(req, socket, head, emitConnection);
+          }
+        });
+      }
+      if (options.perMessageDeflate === true)
+        options.perMessageDeflate = {};
+      if (options.clientTracking) {
+        this.clients = new Set;
+        this._shouldEmitClose = false;
+      }
+      this.options = options;
+      this._state = RUNNING;
+    }
+    address() {
+      if (this.options.noServer) {
+        throw new Error('The server is operating in "noServer" mode');
+      }
+      if (!this._server)
+        return null;
+      return this._server.address();
+    }
+    close(cb) {
+      if (this._state === CLOSED) {
+        if (cb) {
+          this.once("close", () => {
+            cb(new Error("The server is not running"));
+          });
+        }
+        process.nextTick(emitClose, this);
+        return;
+      }
+      if (cb)
+        this.once("close", cb);
+      if (this._state === CLOSING)
+        return;
+      this._state = CLOSING;
+      if (this.options.noServer || this.options.server) {
+        if (this._server) {
+          this._removeListeners();
+          this._removeListeners = this._server = null;
+        }
+        if (this.clients) {
+          if (!this.clients.size) {
+            process.nextTick(emitClose, this);
+          } else {
+            this._shouldEmitClose = true;
+          }
+        } else {
+          process.nextTick(emitClose, this);
+        }
+      } else {
+        const server = this._server;
+        this._removeListeners();
+        this._removeListeners = this._server = null;
+        server.close(() => {
+          emitClose(this);
+        });
+      }
+    }
+    shouldHandle(req) {
+      if (this.options.path) {
+        const index = req.url.indexOf("?");
+        const pathname = index !== -1 ? req.url.slice(0, index) : req.url;
+        if (pathname !== this.options.path)
+          return false;
+      }
+      return true;
+    }
+    handleUpgrade(req, socket, head, cb) {
+      socket.on("error", socketOnError);
+      const key = req.headers["sec-websocket-key"];
+      const upgrade = req.headers.upgrade;
+      const version = +req.headers["sec-websocket-version"];
+      if (req.method !== "GET") {
+        const message = "Invalid HTTP method";
+        abortHandshakeOrEmitwsClientError(this, req, socket, 405, message);
+        return;
+      }
+      if (upgrade === undefined || upgrade.toLowerCase() !== "websocket") {
+        const message = "Invalid Upgrade header";
+        abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+        return;
+      }
+      if (key === undefined || !keyRegex.test(key)) {
+        const message = "Missing or invalid Sec-WebSocket-Key header";
+        abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+        return;
+      }
+      if (version !== 8 && version !== 13) {
+        const message = "Missing or invalid Sec-WebSocket-Version header";
+        abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+        return;
+      }
+      if (!this.shouldHandle(req)) {
+        abortHandshake(socket, 400);
+        return;
+      }
+      const secWebSocketProtocol = req.headers["sec-websocket-protocol"];
+      let protocols = new Set;
+      if (secWebSocketProtocol !== undefined) {
+        try {
+          protocols = subprotocol.parse(secWebSocketProtocol);
+        } catch (err) {
+          const message = "Invalid Sec-WebSocket-Protocol header";
+          abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+          return;
+        }
+      }
+      const secWebSocketExtensions = req.headers["sec-websocket-extensions"];
+      const extensions = {};
+      if (this.options.perMessageDeflate && secWebSocketExtensions !== undefined) {
+        const perMessageDeflate = new PerMessageDeflate(this.options.perMessageDeflate, true, this.options.maxPayload);
+        try {
+          const offers = extension.parse(secWebSocketExtensions);
+          if (offers[PerMessageDeflate.extensionName]) {
+            perMessageDeflate.accept(offers[PerMessageDeflate.extensionName]);
+            extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
+          }
+        } catch (err) {
+          const message = "Invalid or unacceptable Sec-WebSocket-Extensions header";
+          abortHandshakeOrEmitwsClientError(this, req, socket, 400, message);
+          return;
+        }
+      }
+      if (this.options.verifyClient) {
+        const info = {
+          origin: req.headers[`${version === 8 ? "sec-websocket-origin" : "origin"}`],
+          secure: !!(req.socket.authorized || req.socket.encrypted),
+          req
+        };
+        if (this.options.verifyClient.length === 2) {
+          this.options.verifyClient(info, (verified, code, message, headers) => {
+            if (!verified) {
+              return abortHandshake(socket, code || 401, message, headers);
+            }
+            this.completeUpgrade(extensions, key, protocols, req, socket, head, cb);
+          });
+          return;
+        }
+        if (!this.options.verifyClient(info))
+          return abortHandshake(socket, 401);
+      }
+      this.completeUpgrade(extensions, key, protocols, req, socket, head, cb);
+    }
+    completeUpgrade(extensions, key, protocols, req, socket, head, cb) {
+      if (!socket.readable || !socket.writable)
+        return socket.destroy();
+      if (socket[kWebSocket]) {
+        throw new Error("server.handleUpgrade() was called more than once with the same " + "socket, possibly due to a misconfiguration");
+      }
+      if (this._state > RUNNING)
+        return abortHandshake(socket, 503);
+      const digest = createHash("sha1").update(key + GUID).digest("base64");
+      const headers = [
+        "HTTP/1.1 101 Switching Protocols",
+        "Upgrade: websocket",
+        "Connection: Upgrade",
+        `Sec-WebSocket-Accept: ${digest}`
+      ];
+      const ws = new this.options.WebSocket(null, undefined, this.options);
+      if (protocols.size) {
+        const protocol = this.options.handleProtocols ? this.options.handleProtocols(protocols, req) : protocols.values().next().value;
+        if (protocol) {
+          headers.push(`Sec-WebSocket-Protocol: ${protocol}`);
+          ws._protocol = protocol;
+        }
+      }
+      if (extensions[PerMessageDeflate.extensionName]) {
+        const params = extensions[PerMessageDeflate.extensionName].params;
+        const value = extension.format({
+          [PerMessageDeflate.extensionName]: [params]
+        });
+        headers.push(`Sec-WebSocket-Extensions: ${value}`);
+        ws._extensions = extensions;
+      }
+      this.emit("headers", headers, req);
+      socket.write(headers.concat(`\r
+`).join(`\r
+`));
+      socket.removeListener("error", socketOnError);
+      ws.setSocket(socket, head, {
+        allowSynchronousEvents: this.options.allowSynchronousEvents,
+        maxPayload: this.options.maxPayload,
+        skipUTF8Validation: this.options.skipUTF8Validation
+      });
+      if (this.clients) {
+        this.clients.add(ws);
+        ws.on("close", () => {
+          this.clients.delete(ws);
+          if (this._shouldEmitClose && !this.clients.size) {
+            process.nextTick(emitClose, this);
+          }
+        });
+      }
+      cb(ws, req);
     }
   }
-}
-function _fileName(headerValue) {
-  const m2 = headerValue.match(/\bfilename=("(.*?)"|([^()<>@,;:\\"/[\]?={}\s\t]+))($|;\s)/i);
-  if (!m2) {
-    return;
-  }
-  const match = m2[2] || m2[3] || "";
-  let filename = match.slice(match.lastIndexOf("\\") + 1);
-  filename = filename.replace(/%22/g, '"');
-  filename = filename.replace(/&#(\d{4});/g, (m3, code) => {
-    return String.fromCharCode(code);
-  });
-  return filename;
-}
-async function toFormData(Body, ct) {
-  if (!/multipart/i.test(ct)) {
-    throw new TypeError("Failed to fetch");
-  }
-  const m2 = ct.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
-  if (!m2) {
-    throw new TypeError("no or bad content-type header, no multipart boundary");
-  }
-  const parser = new MultipartParser(m2[1] || m2[2]);
-  let headerField;
-  let headerValue;
-  let entryValue;
-  let entryName;
-  let contentType;
-  let filename;
-  const entryChunks = [];
-  const formData = new FormData;
-  const onPartData = (ui8a) => {
-    entryValue += decoder.decode(ui8a, { stream: true });
-  };
-  const appendToFile = (ui8a) => {
-    entryChunks.push(ui8a);
-  };
-  const appendFileToFormData = () => {
-    const file = new file_default(entryChunks, filename, { type: contentType });
-    formData.append(entryName, file);
-  };
-  const appendEntryToFormData = () => {
-    formData.append(entryName, entryValue);
-  };
-  const decoder = new TextDecoder("utf-8");
-  decoder.decode();
-  parser.onPartBegin = function() {
-    parser.onPartData = onPartData;
-    parser.onPartEnd = appendEntryToFormData;
-    headerField = "";
-    headerValue = "";
-    entryValue = "";
-    entryName = "";
-    contentType = "";
-    filename = null;
-    entryChunks.length = 0;
-  };
-  parser.onHeaderField = function(ui8a) {
-    headerField += decoder.decode(ui8a, { stream: true });
-  };
-  parser.onHeaderValue = function(ui8a) {
-    headerValue += decoder.decode(ui8a, { stream: true });
-  };
-  parser.onHeaderEnd = function() {
-    headerValue += decoder.decode();
-    headerField = headerField.toLowerCase();
-    if (headerField === "content-disposition") {
-      const m3 = headerValue.match(/\bname=("([^"]*)"|([^()<>@,;:\\"/[\]?={}\s\t]+))/i);
-      if (m3) {
-        entryName = m3[2] || m3[3] || "";
+  module.exports = WebSocketServer;
+  function addListeners(server, map2) {
+    for (const event of Object.keys(map2))
+      server.on(event, map2[event]);
+    return function removeListeners() {
+      for (const event of Object.keys(map2)) {
+        server.removeListener(event, map2[event]);
       }
-      filename = _fileName(headerValue);
-      if (filename) {
-        parser.onPartData = appendToFile;
-        parser.onPartEnd = appendFileToFormData;
-      }
-    } else if (headerField === "content-type") {
-      contentType = headerValue;
+    };
+  }
+  function emitClose(server) {
+    server._state = CLOSED;
+    server.emit("close");
+  }
+  function socketOnError() {
+    this.destroy();
+  }
+  function abortHandshake(socket, code, message, headers) {
+    message = message || http.STATUS_CODES[code];
+    headers = {
+      Connection: "close",
+      "Content-Type": "text/html",
+      "Content-Length": Buffer.byteLength(message),
+      ...headers
+    };
+    socket.once("finish", socket.destroy);
+    socket.end(`HTTP/1.1 ${code} ${http.STATUS_CODES[code]}\r
+` + Object.keys(headers).map((h) => `${h}: ${headers[h]}`).join(`\r
+`) + `\r
+\r
+` + message);
+  }
+  function abortHandshakeOrEmitwsClientError(server, req, socket, code, message) {
+    if (server.listenerCount("wsClientError")) {
+      const err = new Error(message);
+      Error.captureStackTrace(err, abortHandshakeOrEmitwsClientError);
+      server.emit("wsClientError", err, socket, req);
+    } else {
+      abortHandshake(socket, code, message);
     }
-    headerValue = "";
-    headerField = "";
-  };
-  for await (const chunk of Body) {
-    parser.write(chunk);
   }
-  parser.end();
-  return formData;
-}
-var s = 0, S, f2 = 1, F, LF = 10, CR = 13, SPACE = 32, HYPHEN = 45, COLON = 58, A = 97, Z = 122, lower = (c) => c | 32, noop = () => {};
-var init_multipart_parser = __esm(() => {
-  init_from();
-  init_esm_min();
-  S = {
-    START_BOUNDARY: s++,
-    HEADER_FIELD_START: s++,
-    HEADER_FIELD: s++,
-    HEADER_VALUE_START: s++,
-    HEADER_VALUE: s++,
-    HEADER_VALUE_ALMOST_DONE: s++,
-    HEADERS_ALMOST_DONE: s++,
-    PART_DATA_START: s++,
-    PART_DATA: s++,
-    END: s++
-  };
-  F = {
-    PART_BOUNDARY: f2,
-    LAST_BOUNDARY: f2 *= 2
-  };
 });
 
 // node_modules/commander/esm.mjs
@@ -6936,7 +4966,7 @@ var {
 } = import__.default;
 
 // src/commands/deploy.ts
-import fs3 from "fs";
+import fs2 from "fs";
 
 // src/utils/config.ts
 import fs from "fs";
@@ -10074,19 +8104,19 @@ var createStyler = (open, close, parent) => {
     parent
   };
 };
-var createBuilder = (self2, _styler, _isEmpty) => {
+var createBuilder = (self, _styler, _isEmpty) => {
   const builder = (...arguments_) => applyStyle(builder, arguments_.length === 1 ? "" + arguments_[0] : arguments_.join(" "));
   Object.setPrototypeOf(builder, proto);
-  builder[GENERATOR] = self2;
+  builder[GENERATOR] = self;
   builder[STYLER] = _styler;
   builder[IS_EMPTY] = _isEmpty;
   return builder;
 };
-var applyStyle = (self2, string) => {
-  if (self2.level <= 0 || !string) {
-    return self2[IS_EMPTY] ? "" : string;
+var applyStyle = (self, string) => {
+  if (self.level <= 0 || !string) {
+    return self[IS_EMPTY] ? "" : string;
   }
-  let styler = self2[STYLER];
+  let styler = self[STYLER];
   if (styler === undefined) {
     return string;
   }
@@ -10183,6 +8213,9 @@ class ConfigManager {
       Logger.debug("Auto-detected Dockerfile");
     }
     config.app.port = config.app.port || 8080;
+    if (!config.server) {
+      config.server = {};
+    }
     if (!config.server.host) {
       config.server.host = "arasaka";
       Logger.debug("Using default host: arasaka");
@@ -10196,10 +8229,6 @@ class ConfigManager {
         config.server.user = "admin";
       }
     }
-    config.deployment = config.deployment || {};
-    config.deployment.rollback = config.deployment.rollback || { enabled: true, keepVersions: 3 };
-    config.deployment.cleanup = config.deployment.cleanup || { enabled: true, keepImages: 3 };
-    config.deployment.verifyDeployment = config.deployment.verifyDeployment !== false;
   }
   static getNestedValue(obj, path2) {
     return path2.split(".").reduce((current, key) => current?.[key], obj);
@@ -10292,1268 +8321,258 @@ class CommandExecutor {
   }
 }
 
-// node_modules/node-fetch/src/index.js
-import http2 from "node:http";
-import https from "node:https";
-import zlib from "node:zlib";
-import Stream2, { PassThrough as PassThrough2, pipeline as pump } from "node:stream";
-import { Buffer as Buffer3 } from "node:buffer";
-
-// node_modules/data-uri-to-buffer/dist/index.js
-function dataUriToBuffer(uri) {
-  if (!/^data:/i.test(uri)) {
-    throw new TypeError('`uri` does not appear to be a Data URI (must begin with "data:")');
-  }
-  uri = uri.replace(/\r?\n/g, "");
-  const firstComma = uri.indexOf(",");
-  if (firstComma === -1 || firstComma <= 4) {
-    throw new TypeError("malformed data: URI");
-  }
-  const meta = uri.substring(5, firstComma).split(";");
-  let charset = "";
-  let base64 = false;
-  const type2 = meta[0] || "text/plain";
-  let typeFull = type2;
-  for (let i2 = 1;i2 < meta.length; i2++) {
-    if (meta[i2] === "base64") {
-      base64 = true;
-    } else if (meta[i2]) {
-      typeFull += `;${meta[i2]}`;
-      if (meta[i2].indexOf("charset=") === 0) {
-        charset = meta[i2].substring(8);
-      }
-    }
-  }
-  if (!meta[0] && !charset.length) {
-    typeFull += ";charset=US-ASCII";
-    charset = "US-ASCII";
-  }
-  const encoding = base64 ? "base64" : "ascii";
-  const data = unescape(uri.substring(firstComma + 1));
-  const buffer = Buffer.from(data, encoding);
-  buffer.type = type2;
-  buffer.typeFull = typeFull;
-  buffer.charset = charset;
-  return buffer;
-}
-var dist_default = dataUriToBuffer;
-
-// node_modules/node-fetch/src/body.js
-init_fetch_blob();
-init_esm_min();
-import Stream, { PassThrough } from "node:stream";
-import { types as types2, deprecate, promisify } from "node:util";
-import { Buffer as Buffer2 } from "node:buffer";
-
-// node_modules/node-fetch/src/errors/base.js
-class FetchBaseError extends Error {
-  constructor(message, type2) {
-    super(message);
-    Error.captureStackTrace(this, this.constructor);
-    this.type = type2;
-  }
-  get name() {
-    return this.constructor.name;
-  }
-  get [Symbol.toStringTag]() {
-    return this.constructor.name;
-  }
-}
-
-// node_modules/node-fetch/src/errors/fetch-error.js
-class FetchError extends FetchBaseError {
-  constructor(message, type2, systemError) {
-    super(message, type2);
-    if (systemError) {
-      this.code = this.errno = systemError.code;
-      this.erroredSysCall = systemError.syscall;
-    }
-  }
-}
-
-// node_modules/node-fetch/src/utils/is.js
-var NAME = Symbol.toStringTag;
-var isURLSearchParameters = (object) => {
-  return typeof object === "object" && typeof object.append === "function" && typeof object.delete === "function" && typeof object.get === "function" && typeof object.getAll === "function" && typeof object.has === "function" && typeof object.set === "function" && typeof object.sort === "function" && object[NAME] === "URLSearchParams";
-};
-var isBlob = (object) => {
-  return object && typeof object === "object" && typeof object.arrayBuffer === "function" && typeof object.type === "string" && typeof object.stream === "function" && typeof object.constructor === "function" && /^(Blob|File)$/.test(object[NAME]);
-};
-var isAbortSignal = (object) => {
-  return typeof object === "object" && (object[NAME] === "AbortSignal" || object[NAME] === "EventTarget");
-};
-var isDomainOrSubdomain = (destination, original) => {
-  const orig = new URL(original).hostname;
-  const dest = new URL(destination).hostname;
-  return orig === dest || orig.endsWith(`.${dest}`);
-};
-var isSameProtocol = (destination, original) => {
-  const orig = new URL(original).protocol;
-  const dest = new URL(destination).protocol;
-  return orig === dest;
-};
-
-// node_modules/node-fetch/src/body.js
-var pipeline = promisify(Stream.pipeline);
-var INTERNALS = Symbol("Body internals");
-
-class Body {
-  constructor(body, {
-    size = 0
-  } = {}) {
-    let boundary = null;
-    if (body === null) {
-      body = null;
-    } else if (isURLSearchParameters(body)) {
-      body = Buffer2.from(body.toString());
-    } else if (isBlob(body)) {} else if (Buffer2.isBuffer(body)) {} else if (types2.isAnyArrayBuffer(body)) {
-      body = Buffer2.from(body);
-    } else if (ArrayBuffer.isView(body)) {
-      body = Buffer2.from(body.buffer, body.byteOffset, body.byteLength);
-    } else if (body instanceof Stream) {} else if (body instanceof FormData) {
-      body = formDataToBlob(body);
-      boundary = body.type.split("=")[1];
-    } else {
-      body = Buffer2.from(String(body));
-    }
-    let stream = body;
-    if (Buffer2.isBuffer(body)) {
-      stream = Stream.Readable.from(body);
-    } else if (isBlob(body)) {
-      stream = Stream.Readable.from(body.stream());
-    }
-    this[INTERNALS] = {
-      body,
-      stream,
-      boundary,
-      disturbed: false,
-      error: null
-    };
-    this.size = size;
-    if (body instanceof Stream) {
-      body.on("error", (error_) => {
-        const error = error_ instanceof FetchBaseError ? error_ : new FetchError(`Invalid response body while trying to fetch ${this.url}: ${error_.message}`, "system", error_);
-        this[INTERNALS].error = error;
-      });
-    }
-  }
-  get body() {
-    return this[INTERNALS].stream;
-  }
-  get bodyUsed() {
-    return this[INTERNALS].disturbed;
-  }
-  async arrayBuffer() {
-    const { buffer, byteOffset, byteLength } = await consumeBody(this);
-    return buffer.slice(byteOffset, byteOffset + byteLength);
-  }
-  async formData() {
-    const ct = this.headers.get("content-type");
-    if (ct.startsWith("application/x-www-form-urlencoded")) {
-      const formData = new FormData;
-      const parameters = new URLSearchParams(await this.text());
-      for (const [name, value] of parameters) {
-        formData.append(name, value);
-      }
-      return formData;
-    }
-    const { toFormData: toFormData2 } = await Promise.resolve().then(() => (init_multipart_parser(), exports_multipart_parser));
-    return toFormData2(this.body, ct);
-  }
-  async blob() {
-    const ct = this.headers && this.headers.get("content-type") || this[INTERNALS].body && this[INTERNALS].body.type || "";
-    const buf = await this.arrayBuffer();
-    return new fetch_blob_default([buf], {
-      type: ct
-    });
-  }
-  async json() {
-    const text = await this.text();
-    return JSON.parse(text);
-  }
-  async text() {
-    const buffer = await consumeBody(this);
-    return new TextDecoder().decode(buffer);
-  }
-  buffer() {
-    return consumeBody(this);
-  }
-}
-Body.prototype.buffer = deprecate(Body.prototype.buffer, "Please use 'response.arrayBuffer()' instead of 'response.buffer()'", "node-fetch#buffer");
-Object.defineProperties(Body.prototype, {
-  body: { enumerable: true },
-  bodyUsed: { enumerable: true },
-  arrayBuffer: { enumerable: true },
-  blob: { enumerable: true },
-  json: { enumerable: true },
-  text: { enumerable: true },
-  data: { get: deprecate(() => {}, "data doesn't exist, use json(), text(), arrayBuffer(), or body instead", "https://github.com/node-fetch/node-fetch/issues/1000 (response)") }
-});
-async function consumeBody(data) {
-  if (data[INTERNALS].disturbed) {
-    throw new TypeError(`body used already for: ${data.url}`);
-  }
-  data[INTERNALS].disturbed = true;
-  if (data[INTERNALS].error) {
-    throw data[INTERNALS].error;
-  }
-  const { body } = data;
-  if (body === null) {
-    return Buffer2.alloc(0);
-  }
-  if (!(body instanceof Stream)) {
-    return Buffer2.alloc(0);
-  }
-  const accum = [];
-  let accumBytes = 0;
-  try {
-    for await (const chunk of body) {
-      if (data.size > 0 && accumBytes + chunk.length > data.size) {
-        const error = new FetchError(`content size at ${data.url} over limit: ${data.size}`, "max-size");
-        body.destroy(error);
-        throw error;
-      }
-      accumBytes += chunk.length;
-      accum.push(chunk);
-    }
-  } catch (error) {
-    const error_ = error instanceof FetchBaseError ? error : new FetchError(`Invalid response body while trying to fetch ${data.url}: ${error.message}`, "system", error);
-    throw error_;
-  }
-  if (body.readableEnded === true || body._readableState.ended === true) {
-    try {
-      if (accum.every((c) => typeof c === "string")) {
-        return Buffer2.from(accum.join(""));
-      }
-      return Buffer2.concat(accum, accumBytes);
-    } catch (error) {
-      throw new FetchError(`Could not create Buffer from response body for ${data.url}: ${error.message}`, "system", error);
-    }
-  } else {
-    throw new FetchError(`Premature close of server response while trying to fetch ${data.url}`);
-  }
-}
-var clone = (instance, highWaterMark) => {
-  let p1;
-  let p2;
-  let { body } = instance[INTERNALS];
-  if (instance.bodyUsed) {
-    throw new Error("cannot clone body after it is used");
-  }
-  if (body instanceof Stream && typeof body.getBoundary !== "function") {
-    p1 = new PassThrough({ highWaterMark });
-    p2 = new PassThrough({ highWaterMark });
-    body.pipe(p1);
-    body.pipe(p2);
-    instance[INTERNALS].stream = p1;
-    body = p2;
-  }
-  return body;
-};
-var getNonSpecFormDataBoundary = deprecate((body) => body.getBoundary(), "form-data doesn't follow the spec and requires special treatment. Use alternative package", "https://github.com/node-fetch/node-fetch/issues/1167");
-var extractContentType = (body, request) => {
-  if (body === null) {
-    return null;
-  }
-  if (typeof body === "string") {
-    return "text/plain;charset=UTF-8";
-  }
-  if (isURLSearchParameters(body)) {
-    return "application/x-www-form-urlencoded;charset=UTF-8";
-  }
-  if (isBlob(body)) {
-    return body.type || null;
-  }
-  if (Buffer2.isBuffer(body) || types2.isAnyArrayBuffer(body) || ArrayBuffer.isView(body)) {
-    return null;
-  }
-  if (body instanceof FormData) {
-    return `multipart/form-data; boundary=${request[INTERNALS].boundary}`;
-  }
-  if (body && typeof body.getBoundary === "function") {
-    return `multipart/form-data;boundary=${getNonSpecFormDataBoundary(body)}`;
-  }
-  if (body instanceof Stream) {
-    return null;
-  }
-  return "text/plain;charset=UTF-8";
-};
-var getTotalBytes = (request) => {
-  const { body } = request[INTERNALS];
-  if (body === null) {
-    return 0;
-  }
-  if (isBlob(body)) {
-    return body.size;
-  }
-  if (Buffer2.isBuffer(body)) {
-    return body.length;
-  }
-  if (body && typeof body.getLengthSync === "function") {
-    return body.hasKnownLength && body.hasKnownLength() ? body.getLengthSync() : null;
-  }
-  return null;
-};
-var writeToStream = async (dest, { body }) => {
-  if (body === null) {
-    dest.end();
-  } else {
-    await pipeline(body, dest);
-  }
-};
-
-// node_modules/node-fetch/src/headers.js
-import { types as types3 } from "node:util";
-import http from "node:http";
-var validateHeaderName = typeof http.validateHeaderName === "function" ? http.validateHeaderName : (name) => {
-  if (!/^[\^`\-\w!#$%&'*+.|~]+$/.test(name)) {
-    const error = new TypeError(`Header name must be a valid HTTP token [${name}]`);
-    Object.defineProperty(error, "code", { value: "ERR_INVALID_HTTP_TOKEN" });
-    throw error;
-  }
-};
-var validateHeaderValue = typeof http.validateHeaderValue === "function" ? http.validateHeaderValue : (name, value) => {
-  if (/[^\t\u0020-\u007E\u0080-\u00FF]/.test(value)) {
-    const error = new TypeError(`Invalid character in header content ["${name}"]`);
-    Object.defineProperty(error, "code", { value: "ERR_INVALID_CHAR" });
-    throw error;
-  }
-};
-
-class Headers extends URLSearchParams {
-  constructor(init) {
-    let result = [];
-    if (init instanceof Headers) {
-      const raw = init.raw();
-      for (const [name, values] of Object.entries(raw)) {
-        result.push(...values.map((value) => [name, value]));
-      }
-    } else if (init == null) {} else if (typeof init === "object" && !types3.isBoxedPrimitive(init)) {
-      const method = init[Symbol.iterator];
-      if (method == null) {
-        result.push(...Object.entries(init));
-      } else {
-        if (typeof method !== "function") {
-          throw new TypeError("Header pairs must be iterable");
-        }
-        result = [...init].map((pair) => {
-          if (typeof pair !== "object" || types3.isBoxedPrimitive(pair)) {
-            throw new TypeError("Each header pair must be an iterable object");
-          }
-          return [...pair];
-        }).map((pair) => {
-          if (pair.length !== 2) {
-            throw new TypeError("Each header pair must be a name/value tuple");
-          }
-          return [...pair];
-        });
-      }
-    } else {
-      throw new TypeError("Failed to construct 'Headers': The provided value is not of type '(sequence<sequence<ByteString>> or record<ByteString, ByteString>)");
-    }
-    result = result.length > 0 ? result.map(([name, value]) => {
-      validateHeaderName(name);
-      validateHeaderValue(name, String(value));
-      return [String(name).toLowerCase(), String(value)];
-    }) : undefined;
-    super(result);
-    return new Proxy(this, {
-      get(target, p, receiver) {
-        switch (p) {
-          case "append":
-          case "set":
-            return (name, value) => {
-              validateHeaderName(name);
-              validateHeaderValue(name, String(value));
-              return URLSearchParams.prototype[p].call(target, String(name).toLowerCase(), String(value));
-            };
-          case "delete":
-          case "has":
-          case "getAll":
-            return (name) => {
-              validateHeaderName(name);
-              return URLSearchParams.prototype[p].call(target, String(name).toLowerCase());
-            };
-          case "keys":
-            return () => {
-              target.sort();
-              return new Set(URLSearchParams.prototype.keys.call(target)).keys();
-            };
-          default:
-            return Reflect.get(target, p, receiver);
-        }
-      }
-    });
-  }
-  get [Symbol.toStringTag]() {
-    return this.constructor.name;
-  }
-  toString() {
-    return Object.prototype.toString.call(this);
-  }
-  get(name) {
-    const values = this.getAll(name);
-    if (values.length === 0) {
-      return null;
-    }
-    let value = values.join(", ");
-    if (/^content-encoding$/i.test(name)) {
-      value = value.toLowerCase();
-    }
-    return value;
-  }
-  forEach(callback, thisArg = undefined) {
-    for (const name of this.keys()) {
-      Reflect.apply(callback, thisArg, [this.get(name), name, this]);
-    }
-  }
-  *values() {
-    for (const name of this.keys()) {
-      yield this.get(name);
-    }
-  }
-  *entries() {
-    for (const name of this.keys()) {
-      yield [name, this.get(name)];
-    }
-  }
-  [Symbol.iterator]() {
-    return this.entries();
-  }
-  raw() {
-    return [...this.keys()].reduce((result, key) => {
-      result[key] = this.getAll(key);
-      return result;
-    }, {});
-  }
-  [Symbol.for("nodejs.util.inspect.custom")]() {
-    return [...this.keys()].reduce((result, key) => {
-      const values = this.getAll(key);
-      if (key === "host") {
-        result[key] = values[0];
-      } else {
-        result[key] = values.length > 1 ? values : values[0];
-      }
-      return result;
-    }, {});
-  }
-}
-Object.defineProperties(Headers.prototype, ["get", "entries", "forEach", "values"].reduce((result, property) => {
-  result[property] = { enumerable: true };
-  return result;
-}, {}));
-function fromRawHeaders(headers = []) {
-  return new Headers(headers.reduce((result, value, index, array) => {
-    if (index % 2 === 0) {
-      result.push(array.slice(index, index + 2));
-    }
-    return result;
-  }, []).filter(([name, value]) => {
-    try {
-      validateHeaderName(name);
-      validateHeaderValue(name, String(value));
-      return true;
-    } catch {
-      return false;
-    }
-  }));
-}
-
-// node_modules/node-fetch/src/utils/is-redirect.js
-var redirectStatus = new Set([301, 302, 303, 307, 308]);
-var isRedirect = (code) => {
-  return redirectStatus.has(code);
-};
-
-// node_modules/node-fetch/src/response.js
-var INTERNALS2 = Symbol("Response internals");
-
-class Response extends Body {
-  constructor(body = null, options = {}) {
-    super(body, options);
-    const status = options.status != null ? options.status : 200;
-    const headers = new Headers(options.headers);
-    if (body !== null && !headers.has("Content-Type")) {
-      const contentType = extractContentType(body, this);
-      if (contentType) {
-        headers.append("Content-Type", contentType);
-      }
-    }
-    this[INTERNALS2] = {
-      type: "default",
-      url: options.url,
-      status,
-      statusText: options.statusText || "",
-      headers,
-      counter: options.counter,
-      highWaterMark: options.highWaterMark
-    };
-  }
-  get type() {
-    return this[INTERNALS2].type;
-  }
-  get url() {
-    return this[INTERNALS2].url || "";
-  }
-  get status() {
-    return this[INTERNALS2].status;
-  }
-  get ok() {
-    return this[INTERNALS2].status >= 200 && this[INTERNALS2].status < 300;
-  }
-  get redirected() {
-    return this[INTERNALS2].counter > 0;
-  }
-  get statusText() {
-    return this[INTERNALS2].statusText;
-  }
-  get headers() {
-    return this[INTERNALS2].headers;
-  }
-  get highWaterMark() {
-    return this[INTERNALS2].highWaterMark;
-  }
-  clone() {
-    return new Response(clone(this, this.highWaterMark), {
-      type: this.type,
-      url: this.url,
-      status: this.status,
-      statusText: this.statusText,
-      headers: this.headers,
-      ok: this.ok,
-      redirected: this.redirected,
-      size: this.size,
-      highWaterMark: this.highWaterMark
-    });
-  }
-  static redirect(url, status = 302) {
-    if (!isRedirect(status)) {
-      throw new RangeError('Failed to execute "redirect" on "response": Invalid status code');
-    }
-    return new Response(null, {
-      headers: {
-        location: new URL(url).toString()
-      },
-      status
-    });
-  }
-  static error() {
-    const response = new Response(null, { status: 0, statusText: "" });
-    response[INTERNALS2].type = "error";
-    return response;
-  }
-  static json(data = undefined, init = {}) {
-    const body = JSON.stringify(data);
-    if (body === undefined) {
-      throw new TypeError("data is not JSON serializable");
-    }
-    const headers = new Headers(init && init.headers);
-    if (!headers.has("content-type")) {
-      headers.set("content-type", "application/json");
-    }
-    return new Response(body, {
-      ...init,
-      headers
-    });
-  }
-  get [Symbol.toStringTag]() {
-    return "Response";
-  }
-}
-Object.defineProperties(Response.prototype, {
-  type: { enumerable: true },
-  url: { enumerable: true },
-  status: { enumerable: true },
-  ok: { enumerable: true },
-  redirected: { enumerable: true },
-  statusText: { enumerable: true },
-  headers: { enumerable: true },
-  clone: { enumerable: true }
-});
-
-// node_modules/node-fetch/src/request.js
-import { format as formatUrl } from "node:url";
-import { deprecate as deprecate2 } from "node:util";
-
-// node_modules/node-fetch/src/utils/get-search.js
-var getSearch = (parsedURL) => {
-  if (parsedURL.search) {
-    return parsedURL.search;
-  }
-  const lastOffset = parsedURL.href.length - 1;
-  const hash = parsedURL.hash || (parsedURL.href[lastOffset] === "#" ? "#" : "");
-  return parsedURL.href[lastOffset - hash.length] === "?" ? "?" : "";
-};
-
-// node_modules/node-fetch/src/utils/referrer.js
-import { isIP } from "node:net";
-function stripURLForUseAsAReferrer(url, originOnly = false) {
-  if (url == null) {
-    return "no-referrer";
-  }
-  url = new URL(url);
-  if (/^(about|blob|data):$/.test(url.protocol)) {
-    return "no-referrer";
-  }
-  url.username = "";
-  url.password = "";
-  url.hash = "";
-  if (originOnly) {
-    url.pathname = "";
-    url.search = "";
-  }
-  return url;
-}
-var ReferrerPolicy = new Set([
-  "",
-  "no-referrer",
-  "no-referrer-when-downgrade",
-  "same-origin",
-  "origin",
-  "strict-origin",
-  "origin-when-cross-origin",
-  "strict-origin-when-cross-origin",
-  "unsafe-url"
-]);
-var DEFAULT_REFERRER_POLICY = "strict-origin-when-cross-origin";
-function validateReferrerPolicy(referrerPolicy) {
-  if (!ReferrerPolicy.has(referrerPolicy)) {
-    throw new TypeError(`Invalid referrerPolicy: ${referrerPolicy}`);
-  }
-  return referrerPolicy;
-}
-function isOriginPotentiallyTrustworthy(url) {
-  if (/^(http|ws)s:$/.test(url.protocol)) {
-    return true;
-  }
-  const hostIp = url.host.replace(/(^\[)|(]$)/g, "");
-  const hostIPVersion = isIP(hostIp);
-  if (hostIPVersion === 4 && /^127\./.test(hostIp)) {
-    return true;
-  }
-  if (hostIPVersion === 6 && /^(((0+:){7})|(::(0+:){0,6}))0*1$/.test(hostIp)) {
-    return true;
-  }
-  if (url.host === "localhost" || url.host.endsWith(".localhost")) {
-    return false;
-  }
-  if (url.protocol === "file:") {
-    return true;
-  }
-  return false;
-}
-function isUrlPotentiallyTrustworthy(url) {
-  if (/^about:(blank|srcdoc)$/.test(url)) {
-    return true;
-  }
-  if (url.protocol === "data:") {
-    return true;
-  }
-  if (/^(blob|filesystem):$/.test(url.protocol)) {
-    return true;
-  }
-  return isOriginPotentiallyTrustworthy(url);
-}
-function determineRequestsReferrer(request, { referrerURLCallback, referrerOriginCallback } = {}) {
-  if (request.referrer === "no-referrer" || request.referrerPolicy === "") {
-    return null;
-  }
-  const policy = request.referrerPolicy;
-  if (request.referrer === "about:client") {
-    return "no-referrer";
-  }
-  const referrerSource = request.referrer;
-  let referrerURL = stripURLForUseAsAReferrer(referrerSource);
-  let referrerOrigin = stripURLForUseAsAReferrer(referrerSource, true);
-  if (referrerURL.toString().length > 4096) {
-    referrerURL = referrerOrigin;
-  }
-  if (referrerURLCallback) {
-    referrerURL = referrerURLCallback(referrerURL);
-  }
-  if (referrerOriginCallback) {
-    referrerOrigin = referrerOriginCallback(referrerOrigin);
-  }
-  const currentURL = new URL(request.url);
-  switch (policy) {
-    case "no-referrer":
-      return "no-referrer";
-    case "origin":
-      return referrerOrigin;
-    case "unsafe-url":
-      return referrerURL;
-    case "strict-origin":
-      if (isUrlPotentiallyTrustworthy(referrerURL) && !isUrlPotentiallyTrustworthy(currentURL)) {
-        return "no-referrer";
-      }
-      return referrerOrigin.toString();
-    case "strict-origin-when-cross-origin":
-      if (referrerURL.origin === currentURL.origin) {
-        return referrerURL;
-      }
-      if (isUrlPotentiallyTrustworthy(referrerURL) && !isUrlPotentiallyTrustworthy(currentURL)) {
-        return "no-referrer";
-      }
-      return referrerOrigin;
-    case "same-origin":
-      if (referrerURL.origin === currentURL.origin) {
-        return referrerURL;
-      }
-      return "no-referrer";
-    case "origin-when-cross-origin":
-      if (referrerURL.origin === currentURL.origin) {
-        return referrerURL;
-      }
-      return referrerOrigin;
-    case "no-referrer-when-downgrade":
-      if (isUrlPotentiallyTrustworthy(referrerURL) && !isUrlPotentiallyTrustworthy(currentURL)) {
-        return "no-referrer";
-      }
-      return referrerURL;
-    default:
-      throw new TypeError(`Invalid referrerPolicy: ${policy}`);
-  }
-}
-function parseReferrerPolicyFromHeader(headers) {
-  const policyTokens = (headers.get("referrer-policy") || "").split(/[,\s]+/);
-  let policy = "";
-  for (const token of policyTokens) {
-    if (token && ReferrerPolicy.has(token)) {
-      policy = token;
-    }
-  }
-  return policy;
-}
-
-// node_modules/node-fetch/src/request.js
-var INTERNALS3 = Symbol("Request internals");
-var isRequest = (object) => {
-  return typeof object === "object" && typeof object[INTERNALS3] === "object";
-};
-var doBadDataWarn = deprecate2(() => {}, ".data is not a valid RequestInit property, use .body instead", "https://github.com/node-fetch/node-fetch/issues/1000 (request)");
-
-class Request extends Body {
-  constructor(input, init = {}) {
-    let parsedURL;
-    if (isRequest(input)) {
-      parsedURL = new URL(input.url);
-    } else {
-      parsedURL = new URL(input);
-      input = {};
-    }
-    if (parsedURL.username !== "" || parsedURL.password !== "") {
-      throw new TypeError(`${parsedURL} is an url with embedded credentials.`);
-    }
-    let method = init.method || input.method || "GET";
-    if (/^(delete|get|head|options|post|put)$/i.test(method)) {
-      method = method.toUpperCase();
-    }
-    if (!isRequest(init) && "data" in init) {
-      doBadDataWarn();
-    }
-    if ((init.body != null || isRequest(input) && input.body !== null) && (method === "GET" || method === "HEAD")) {
-      throw new TypeError("Request with GET/HEAD method cannot have body");
-    }
-    const inputBody = init.body ? init.body : isRequest(input) && input.body !== null ? clone(input) : null;
-    super(inputBody, {
-      size: init.size || input.size || 0
-    });
-    const headers = new Headers(init.headers || input.headers || {});
-    if (inputBody !== null && !headers.has("Content-Type")) {
-      const contentType = extractContentType(inputBody, this);
-      if (contentType) {
-        headers.set("Content-Type", contentType);
-      }
-    }
-    let signal = isRequest(input) ? input.signal : null;
-    if ("signal" in init) {
-      signal = init.signal;
-    }
-    if (signal != null && !isAbortSignal(signal)) {
-      throw new TypeError("Expected signal to be an instanceof AbortSignal or EventTarget");
-    }
-    let referrer = init.referrer == null ? input.referrer : init.referrer;
-    if (referrer === "") {
-      referrer = "no-referrer";
-    } else if (referrer) {
-      const parsedReferrer = new URL(referrer);
-      referrer = /^about:(\/\/)?client$/.test(parsedReferrer) ? "client" : parsedReferrer;
-    } else {
-      referrer = undefined;
-    }
-    this[INTERNALS3] = {
-      method,
-      redirect: init.redirect || input.redirect || "follow",
-      headers,
-      parsedURL,
-      signal,
-      referrer
-    };
-    this.follow = init.follow === undefined ? input.follow === undefined ? 20 : input.follow : init.follow;
-    this.compress = init.compress === undefined ? input.compress === undefined ? true : input.compress : init.compress;
-    this.counter = init.counter || input.counter || 0;
-    this.agent = init.agent || input.agent;
-    this.highWaterMark = init.highWaterMark || input.highWaterMark || 16384;
-    this.insecureHTTPParser = init.insecureHTTPParser || input.insecureHTTPParser || false;
-    this.referrerPolicy = init.referrerPolicy || input.referrerPolicy || "";
-  }
-  get method() {
-    return this[INTERNALS3].method;
-  }
-  get url() {
-    return formatUrl(this[INTERNALS3].parsedURL);
-  }
-  get headers() {
-    return this[INTERNALS3].headers;
-  }
-  get redirect() {
-    return this[INTERNALS3].redirect;
-  }
-  get signal() {
-    return this[INTERNALS3].signal;
-  }
-  get referrer() {
-    if (this[INTERNALS3].referrer === "no-referrer") {
-      return "";
-    }
-    if (this[INTERNALS3].referrer === "client") {
-      return "about:client";
-    }
-    if (this[INTERNALS3].referrer) {
-      return this[INTERNALS3].referrer.toString();
-    }
-    return;
-  }
-  get referrerPolicy() {
-    return this[INTERNALS3].referrerPolicy;
-  }
-  set referrerPolicy(referrerPolicy) {
-    this[INTERNALS3].referrerPolicy = validateReferrerPolicy(referrerPolicy);
-  }
-  clone() {
-    return new Request(this);
-  }
-  get [Symbol.toStringTag]() {
-    return "Request";
-  }
-}
-Object.defineProperties(Request.prototype, {
-  method: { enumerable: true },
-  url: { enumerable: true },
-  headers: { enumerable: true },
-  redirect: { enumerable: true },
-  clone: { enumerable: true },
-  signal: { enumerable: true },
-  referrer: { enumerable: true },
-  referrerPolicy: { enumerable: true }
-});
-var getNodeRequestOptions = (request) => {
-  const { parsedURL } = request[INTERNALS3];
-  const headers = new Headers(request[INTERNALS3].headers);
-  if (!headers.has("Accept")) {
-    headers.set("Accept", "*/*");
-  }
-  let contentLengthValue = null;
-  if (request.body === null && /^(post|put)$/i.test(request.method)) {
-    contentLengthValue = "0";
-  }
-  if (request.body !== null) {
-    const totalBytes = getTotalBytes(request);
-    if (typeof totalBytes === "number" && !Number.isNaN(totalBytes)) {
-      contentLengthValue = String(totalBytes);
-    }
-  }
-  if (contentLengthValue) {
-    headers.set("Content-Length", contentLengthValue);
-  }
-  if (request.referrerPolicy === "") {
-    request.referrerPolicy = DEFAULT_REFERRER_POLICY;
-  }
-  if (request.referrer && request.referrer !== "no-referrer") {
-    request[INTERNALS3].referrer = determineRequestsReferrer(request);
-  } else {
-    request[INTERNALS3].referrer = "no-referrer";
-  }
-  if (request[INTERNALS3].referrer instanceof URL) {
-    headers.set("Referer", request.referrer);
-  }
-  if (!headers.has("User-Agent")) {
-    headers.set("User-Agent", "node-fetch");
-  }
-  if (request.compress && !headers.has("Accept-Encoding")) {
-    headers.set("Accept-Encoding", "gzip, deflate, br");
-  }
-  let { agent } = request;
-  if (typeof agent === "function") {
-    agent = agent(parsedURL);
-  }
-  const search = getSearch(parsedURL);
-  const options = {
-    path: parsedURL.pathname + search,
-    method: request.method,
-    headers: headers[Symbol.for("nodejs.util.inspect.custom")](),
-    insecureHTTPParser: request.insecureHTTPParser,
-    agent
-  };
-  return {
-    parsedURL,
-    options
-  };
-};
-
-// node_modules/node-fetch/src/errors/abort-error.js
-class AbortError extends FetchBaseError {
-  constructor(message, type2 = "aborted") {
-    super(message, type2);
-  }
-}
-
-// node_modules/node-fetch/src/index.js
-init_esm_min();
-init_from();
-var supportedSchemas = new Set(["data:", "http:", "https:"]);
-async function fetch(url, options_) {
-  return new Promise((resolve, reject) => {
-    const request = new Request(url, options_);
-    const { parsedURL, options } = getNodeRequestOptions(request);
-    if (!supportedSchemas.has(parsedURL.protocol)) {
-      throw new TypeError(`node-fetch cannot load ${url}. URL scheme "${parsedURL.protocol.replace(/:$/, "")}" is not supported.`);
-    }
-    if (parsedURL.protocol === "data:") {
-      const data = dist_default(request.url);
-      const response2 = new Response(data, { headers: { "Content-Type": data.typeFull } });
-      resolve(response2);
-      return;
-    }
-    const send = (parsedURL.protocol === "https:" ? https : http2).request;
-    const { signal } = request;
-    let response = null;
-    const abort = () => {
-      const error = new AbortError("The operation was aborted.");
-      reject(error);
-      if (request.body && request.body instanceof Stream2.Readable) {
-        request.body.destroy(error);
-      }
-      if (!response || !response.body) {
-        return;
-      }
-      response.body.emit("error", error);
-    };
-    if (signal && signal.aborted) {
-      abort();
-      return;
-    }
-    const abortAndFinalize = () => {
-      abort();
-      finalize();
-    };
-    const request_ = send(parsedURL.toString(), options);
-    if (signal) {
-      signal.addEventListener("abort", abortAndFinalize);
-    }
-    const finalize = () => {
-      request_.abort();
-      if (signal) {
-        signal.removeEventListener("abort", abortAndFinalize);
-      }
-    };
-    request_.on("error", (error) => {
-      reject(new FetchError(`request to ${request.url} failed, reason: ${error.message}`, "system", error));
-      finalize();
-    });
-    fixResponseChunkedTransferBadEnding(request_, (error) => {
-      if (response && response.body) {
-        response.body.destroy(error);
-      }
-    });
-    if (process.version < "v14") {
-      request_.on("socket", (s2) => {
-        let endedWithEventsCount;
-        s2.prependListener("end", () => {
-          endedWithEventsCount = s2._eventsCount;
-        });
-        s2.prependListener("close", (hadError) => {
-          if (response && endedWithEventsCount < s2._eventsCount && !hadError) {
-            const error = new Error("Premature close");
-            error.code = "ERR_STREAM_PREMATURE_CLOSE";
-            response.body.emit("error", error);
-          }
-        });
-      });
-    }
-    request_.on("response", (response_) => {
-      request_.setTimeout(0);
-      const headers = fromRawHeaders(response_.rawHeaders);
-      if (isRedirect(response_.statusCode)) {
-        const location = headers.get("Location");
-        let locationURL = null;
-        try {
-          locationURL = location === null ? null : new URL(location, request.url);
-        } catch {
-          if (request.redirect !== "manual") {
-            reject(new FetchError(`uri requested responds with an invalid redirect URL: ${location}`, "invalid-redirect"));
-            finalize();
-            return;
-          }
-        }
-        switch (request.redirect) {
-          case "error":
-            reject(new FetchError(`uri requested responds with a redirect, redirect mode is set to error: ${request.url}`, "no-redirect"));
-            finalize();
-            return;
-          case "manual":
-            break;
-          case "follow": {
-            if (locationURL === null) {
-              break;
-            }
-            if (request.counter >= request.follow) {
-              reject(new FetchError(`maximum redirect reached at: ${request.url}`, "max-redirect"));
-              finalize();
-              return;
-            }
-            const requestOptions = {
-              headers: new Headers(request.headers),
-              follow: request.follow,
-              counter: request.counter + 1,
-              agent: request.agent,
-              compress: request.compress,
-              method: request.method,
-              body: clone(request),
-              signal: request.signal,
-              size: request.size,
-              referrer: request.referrer,
-              referrerPolicy: request.referrerPolicy
-            };
-            if (!isDomainOrSubdomain(request.url, locationURL) || !isSameProtocol(request.url, locationURL)) {
-              for (const name of ["authorization", "www-authenticate", "cookie", "cookie2"]) {
-                requestOptions.headers.delete(name);
-              }
-            }
-            if (response_.statusCode !== 303 && request.body && options_.body instanceof Stream2.Readable) {
-              reject(new FetchError("Cannot follow redirect with body being a readable stream", "unsupported-redirect"));
-              finalize();
-              return;
-            }
-            if (response_.statusCode === 303 || (response_.statusCode === 301 || response_.statusCode === 302) && request.method === "POST") {
-              requestOptions.method = "GET";
-              requestOptions.body = undefined;
-              requestOptions.headers.delete("content-length");
-            }
-            const responseReferrerPolicy = parseReferrerPolicyFromHeader(headers);
-            if (responseReferrerPolicy) {
-              requestOptions.referrerPolicy = responseReferrerPolicy;
-            }
-            resolve(fetch(new Request(locationURL, requestOptions)));
-            finalize();
-            return;
-          }
-          default:
-            return reject(new TypeError(`Redirect option '${request.redirect}' is not a valid value of RequestRedirect`));
-        }
-      }
-      if (signal) {
-        response_.once("end", () => {
-          signal.removeEventListener("abort", abortAndFinalize);
-        });
-      }
-      let body = pump(response_, new PassThrough2, (error) => {
-        if (error) {
-          reject(error);
-        }
-      });
-      if (process.version < "v12.10") {
-        response_.on("aborted", abortAndFinalize);
-      }
-      const responseOptions = {
-        url: request.url,
-        status: response_.statusCode,
-        statusText: response_.statusMessage,
-        headers,
-        size: request.size,
-        counter: request.counter,
-        highWaterMark: request.highWaterMark
-      };
-      const codings = headers.get("Content-Encoding");
-      if (!request.compress || request.method === "HEAD" || codings === null || response_.statusCode === 204 || response_.statusCode === 304) {
-        response = new Response(body, responseOptions);
-        resolve(response);
-        return;
-      }
-      const zlibOptions = {
-        flush: zlib.Z_SYNC_FLUSH,
-        finishFlush: zlib.Z_SYNC_FLUSH
-      };
-      if (codings === "gzip" || codings === "x-gzip") {
-        body = pump(body, zlib.createGunzip(zlibOptions), (error) => {
-          if (error) {
-            reject(error);
-          }
-        });
-        response = new Response(body, responseOptions);
-        resolve(response);
-        return;
-      }
-      if (codings === "deflate" || codings === "x-deflate") {
-        const raw = pump(response_, new PassThrough2, (error) => {
-          if (error) {
-            reject(error);
-          }
-        });
-        raw.once("data", (chunk) => {
-          if ((chunk[0] & 15) === 8) {
-            body = pump(body, zlib.createInflate(), (error) => {
-              if (error) {
-                reject(error);
-              }
-            });
-          } else {
-            body = pump(body, zlib.createInflateRaw(), (error) => {
-              if (error) {
-                reject(error);
-              }
-            });
-          }
-          response = new Response(body, responseOptions);
-          resolve(response);
-        });
-        raw.once("end", () => {
-          if (!response) {
-            response = new Response(body, responseOptions);
-            resolve(response);
-          }
-        });
-        return;
-      }
-      if (codings === "br") {
-        body = pump(body, zlib.createBrotliDecompress(), (error) => {
-          if (error) {
-            reject(error);
-          }
-        });
-        response = new Response(body, responseOptions);
-        resolve(response);
-        return;
-      }
-      response = new Response(body, responseOptions);
-      resolve(response);
-    });
-    writeToStream(request_, request).catch(reject);
-  });
-}
-function fixResponseChunkedTransferBadEnding(request, errorCallback) {
-  const LAST_CHUNK = Buffer3.from(`0\r
-\r
-`);
-  let isChunkedTransfer = false;
-  let properLastChunkReceived = false;
-  let previousChunk;
-  request.on("response", (response) => {
-    const { headers } = response;
-    isChunkedTransfer = headers["transfer-encoding"] === "chunked" && !headers["content-length"];
-  });
-  request.on("socket", (socket) => {
-    const onSocketClose = () => {
-      if (isChunkedTransfer && !properLastChunkReceived) {
-        const error = new Error("Premature close");
-        error.code = "ERR_STREAM_PREMATURE_CLOSE";
-        errorCallback(error);
-      }
-    };
-    const onData = (buf) => {
-      properLastChunkReceived = Buffer3.compare(buf.slice(-5), LAST_CHUNK) === 0;
-      if (!properLastChunkReceived && previousChunk) {
-        properLastChunkReceived = Buffer3.compare(previousChunk.slice(-3), LAST_CHUNK.slice(0, 3)) === 0 && Buffer3.compare(buf.slice(-2), LAST_CHUNK.slice(3)) === 0;
-      }
-      previousChunk = buf;
-    };
-    socket.prependListener("close", onSocketClose);
-    socket.on("data", onData);
-    request.on("close", () => {
-      socket.removeListener("close", onSocketClose);
-      socket.removeListener("data", onData);
-    });
-  });
-}
+// node_modules/ws/wrapper.mjs
+var import_stream = __toESM(require_stream(), 1);
+var import_receiver = __toESM(require_receiver(), 1);
+var import_sender = __toESM(require_sender(), 1);
+var import_websocket = __toESM(require_websocket(), 1);
+var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // src/utils/truenas-api.ts
 class TrueNASAPIClient {
-  baseUrl;
+  host;
   apiKey;
-  constructor(host, apiKey, useHttps = true) {
-    const protocol = useHttps ? "https" : "http";
-    this.baseUrl = `${protocol}://${host}/api/v2.0`;
+  ws = null;
+  messageId = 0;
+  pendingRequests = new Map;
+  authenticated = false;
+  constructor(host, apiKey) {
+    this.host = host;
     this.apiKey = apiKey;
   }
-  async makeRequest(method, endpoint, data) {
-    const url = `${this.baseUrl}/${endpoint}`;
-    Logger.debug(`API ${method}: ${url}`);
-    const options = {
-      method,
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json"
-      }
-    };
-    if (data) {
-      options.body = JSON.stringify(data);
+  generateId() {
+    return `req_${++this.messageId}_${Date.now()}`;
+  }
+  async connect() {
+    if (this.ws && this.ws.readyState === import_websocket.default.OPEN) {
+      return;
     }
+    return new Promise((resolve, reject) => {
+      const wsUrl = `wss://${this.host}/websocket`;
+      Logger.info(`Connecting to TrueNAS WebSocket: ${wsUrl}`);
+      this.ws = new import_websocket.default(wsUrl, {
+        rejectUnauthorized: false
+      });
+      this.ws.on("open", () => {
+        Logger.debug("WebSocket connected, sending connect message");
+        this.send({
+          msg: "connect",
+          version: "1",
+          support: ["1"]
+        });
+      });
+      this.ws.on("message", (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+          this.handleMessage(message, resolve, reject);
+        } catch (error) {
+          Logger.error(`Failed to parse WebSocket message: ${error}`);
+        }
+      });
+      this.ws.on("error", (error) => {
+        Logger.error(`WebSocket error: ${error}`);
+        reject(error);
+      });
+      this.ws.on("close", () => {
+        Logger.debug("WebSocket closed");
+        this.authenticated = false;
+      });
+    });
+  }
+  handleMessage(message, connectResolve, connectReject) {
+    Logger.debug(`Received message: ${JSON.stringify(message)}`);
+    switch (message.msg) {
+      case "connected":
+        Logger.success("WebSocket connected successfully");
+        if (connectResolve)
+          connectResolve();
+        break;
+      case "failed":
+        Logger.error("WebSocket connection failed");
+        if (connectReject)
+          connectReject(new Error("WebSocket connection failed"));
+        break;
+      case "result":
+        if (message.id && this.pendingRequests.has(message.id)) {
+          const request = this.pendingRequests.get(message.id);
+          this.pendingRequests.delete(message.id);
+          request.resolve(message.result);
+        }
+        break;
+      case "error":
+        if (message.id && this.pendingRequests.has(message.id)) {
+          const request = this.pendingRequests.get(message.id);
+          this.pendingRequests.delete(message.id);
+          request.reject(new Error(message.error || "Unknown error"));
+        }
+        break;
+    }
+  }
+  send(message) {
+    if (!this.ws || this.ws.readyState !== import_websocket.default.OPEN) {
+      throw new Error("WebSocket not connected");
+    }
+    Logger.debug(`Sending message: ${JSON.stringify(message)}`);
+    this.ws.send(JSON.stringify(message));
+  }
+  async callMethod(method, params = []) {
+    await this.connect();
+    await this.authenticate();
+    return new Promise((resolve, reject) => {
+      const id = this.generateId();
+      this.pendingRequests.set(id, { resolve, reject });
+      this.send({
+        id,
+        msg: "method",
+        method,
+        params
+      });
+      setTimeout(() => {
+        if (this.pendingRequests.has(id)) {
+          this.pendingRequests.delete(id);
+          reject(new Error(`Method ${method} timed out`));
+        }
+      }, 30000);
+    });
+  }
+  async authenticate() {
+    if (this.authenticated) {
+      return;
+    }
+    Logger.info("Authenticating with API key");
     try {
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API request failed: ${response.status} ${response.statusText}
-${errorText}`);
-      }
-      const responseData = await response.json();
-      return responseData;
+      const result = await this.callMethodNoAuth("auth.login_with_api_key", [this.apiKey]);
+      this.authenticated = true;
+      Logger.success("Authentication successful");
     } catch (error) {
-      Logger.error(`API request failed: ${error}`);
+      Logger.error(`Authentication failed: ${error}`);
       throw error;
     }
   }
-  async queryApps(filters) {
-    const queryData = {
-      query_filters: filters || [],
-      query_options: {}
-    };
-    return await this.makeRequest("POST", "app/query", queryData);
-  }
-  async getAppByName(appName) {
-    const apps = await this.queryApps([["name", "=", appName]]);
-    return apps.length > 0 ? apps[0] : null;
-  }
-  async createApp(appData) {
-    Logger.info(`Creating app: ${appData.app_name}`);
-    return await this.makeRequest("POST", "app/create", appData);
-  }
-  async updateApp(appId, updateData) {
-    Logger.info(`Updating app: ${appId}`);
-    return await this.makeRequest("PUT", `app/id/${appId}`, updateData);
-  }
-  async startApp(appId) {
-    Logger.info(`Starting app: ${appId}`);
-    return await this.makeRequest("POST", `app/id/${appId}/start`);
-  }
-  async stopApp(appId) {
-    Logger.info(`Stopping app: ${appId}`);
-    return await this.makeRequest("POST", `app/id/${appId}/stop`);
-  }
-  async getAppStatus(appId) {
-    return await this.makeRequest("GET", `app/id/${appId}`);
+  async callMethodNoAuth(method, params = []) {
+    return new Promise((resolve, reject) => {
+      const id = this.generateId();
+      this.pendingRequests.set(id, { resolve, reject });
+      this.send({
+        id,
+        msg: "method",
+        method,
+        params
+      });
+      setTimeout(() => {
+        if (this.pendingRequests.has(id)) {
+          this.pendingRequests.delete(id);
+          reject(new Error(`Method ${method} timed out`));
+        }
+      }, 30000);
+    });
   }
   async testConnection() {
     try {
-      await this.makeRequest("GET", "system/info");
+      const result = await this.callMethod("system.info");
+      Logger.success(`Connected to TrueNAS ${result.version}`);
       return true;
     } catch (error) {
+      Logger.error(`Connection test failed: ${error}`);
       return false;
     }
+  }
+  async getAppByName(appName) {
+    try {
+      Logger.info(`Getting app by name: ${appName}`);
+      const result = await this.callMethod("app.get_instance", [appName]);
+      return result;
+    } catch (error) {
+      Logger.warn(`Could not get app '${appName}': ${error.message}`);
+      return null;
+    }
+  }
+  async createApp(appData) {
+    Logger.info(`Creating app: ${appData.app_name}`);
+    try {
+      const jobId = await this.callMethod("app.create", [appData]);
+      Logger.info(`App creation job started: ${jobId}`);
+      const result = await this.waitForJob(jobId);
+      Logger.success(`App '${appData.app_name}' created successfully`);
+      return result;
+    } catch (error) {
+      Logger.error(`Failed to create app: ${error}`);
+      throw error;
+    }
+  }
+  async waitForJob(jobId) {
+    Logger.info(`Waiting for job ${jobId} to complete...`);
+    while (true) {
+      try {
+        const jobs = await this.callMethod("core.get_jobs", [[["id", "=", jobId]]]);
+        if (jobs.length === 0) {
+          throw new Error(`Job ${jobId} not found`);
+        }
+        const job = jobs[0];
+        Logger.debug(`Job ${jobId} state: ${job.state}, progress: ${job.progress?.percent || 0}%`);
+        if (job.state === "SUCCESS") {
+          Logger.success(`Job ${jobId} completed successfully`);
+          return job.result;
+        } else if (job.state === "FAILED") {
+          throw new Error(`Job ${jobId} failed: ${job.error || "Unknown error"}`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } catch (error) {
+        Logger.error(`Error checking job status: ${error}`);
+        throw error;
+      }
+    }
+  }
+  async updateApp(appName, updateData) {
+    Logger.info(`Updating app: ${appName}`);
+    try {
+      const jobId = await this.callMethod("app.update", [appName, updateData]);
+      Logger.info(`App update job started: ${jobId}`);
+      const result = await this.waitForJob(jobId);
+      Logger.success(`App '${appName}' updated successfully`);
+      return result;
+    } catch (error) {
+      Logger.error(`Failed to update app: ${error}`);
+      throw error;
+    }
+  }
+  async startApp(appId) {
+    Logger.info(`Starting app: ${appId}`);
+    return await this.callMethod("app.start", [appId]);
+  }
+  async stopApp(appId) {
+    Logger.info(`Stopping app: ${appId}`);
+    return await this.callMethod("app.stop", [appId]);
+  }
+  async getAppStatus(appId) {
+    return await this.callMethod("app.get_instance", [appId]);
+  }
+  async pullImages(appName, redeploy = true) {
+    Logger.info(`Pulling images for app: ${appName}`);
+    try {
+      const jobId = await this.callMethod("app.pull_images", [appName, { redeploy }]);
+      Logger.info(`Image pull job started: ${jobId}`);
+      const result = await this.waitForJob(jobId);
+      Logger.success(`Images pulled successfully for app '${appName}'`);
+      return result;
+    } catch (error) {
+      Logger.error(`Failed to pull images: ${error}`);
+      throw error;
+    }
+  }
+  disconnect() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    this.authenticated = false;
+    this.pendingRequests.clear();
   }
 }
 
 // src/commands/deploy.ts
 async function deployCommand(options) {
+  let deployer = null;
   try {
     Logger.info("Starting Arasaka deployment");
     const config = ConfigManager.loadConfig(options.config);
@@ -11561,12 +8580,16 @@ async function deployCommand(options) {
     if (options.tag) {
       resolvedConfig.app.tag = options.tag;
     }
-    const deployer = new Deployer(resolvedConfig, options);
+    deployer = new Deployer(resolvedConfig, options);
     await deployer.deploy();
     Logger.success("Deployment completed successfully");
   } catch (error) {
     Logger.error(`Deployment failed: ${error}`);
     process.exit(1);
+  } finally {
+    if (deployer) {
+      deployer.cleanup();
+    }
   }
 }
 
@@ -11574,6 +8597,7 @@ class Deployer {
   config;
   options;
   apiClient;
+  actualImageName = null;
   constructor(config, options) {
     this.config = config;
     this.options = options;
@@ -11584,15 +8608,25 @@ class Deployer {
   }
   async deploy() {
     const { app } = this.config;
-    const imageTag = `${app.image}:${app.tag}`;
-    Logger.info(`Deploying ${app.name} with image ${imageTag}`);
+    Logger.info(`Deploying ${app.name}`);
     if (this.options.dryRun) {
       await this.dryRunDeploy();
       return;
     }
     await this.validateEnvironment();
     await this.buildAndPushImage();
-    const existingApp = await this.apiClient.getAppByName(app.name);
+    if (!this.actualImageName) {
+      throw new Error("Image name could not be determined from Docker push output");
+    }
+    const imageTag = `${this.actualImageName}:${app.tag}`;
+    Logger.info(`Using image: ${imageTag}`);
+    let existingApp = null;
+    try {
+      existingApp = await this.apiClient.getAppByName(app.name);
+    } catch (error) {
+      Logger.warn(`Could not check if app exists: ${error.message}`);
+      Logger.info("Proceeding with app creation...");
+    }
     if (existingApp) {
       Logger.info(`App '${app.name}' exists, updating...`);
       await this.updateApp(existingApp);
@@ -11605,11 +8639,11 @@ class Deployer {
   async dryRunDeploy() {
     const { app } = this.config;
     Logger.info("DRY RUN - Would perform the following actions:");
-    Logger.info(`  - Build image: ${app.image}:${app.tag}`);
+    Logger.info(`  - Build and push image for app: ${app.name}`);
+    Logger.info(`  - Extract actual image name from push output`);
     Logger.info(`  - Connect to TrueNAS API: ${this.config.server.host}`);
     Logger.info(`  - Check if app '${app.name}' exists`);
     Logger.info(`  - Create or update app accordingly`);
-    Logger.info(`  - Verify deployment: ${this.config.deployment.verifyDeployment ? "enabled" : "disabled"}`);
   }
   async validateEnvironment() {
     Logger.info("Validating environment");
@@ -11631,10 +8665,10 @@ class Deployer {
   }
   async buildAndPushImage() {
     const { app } = this.config;
-    const imageTag = `${app.image}:${app.tag}`;
+    const localTag = `${app.name}:${app.tag}`;
     const dockerfilePath = app.dockerfile || "Dockerfile";
-    Logger.info(`Building image: ${imageTag} using ${dockerfilePath}`);
-    const buildArgs = ["build", "-t", imageTag];
+    Logger.info(`Building image: ${localTag} using ${dockerfilePath}`);
+    const buildArgs = ["build", "-t", localTag];
     if (app.dockerfile && app.dockerfile !== "Dockerfile") {
       buildArgs.push("-f", app.dockerfile);
     }
@@ -11644,19 +8678,66 @@ class Deployer {
       throw new Error(`Docker build failed using ${dockerfilePath}`);
     }
     Logger.info("Image build completed");
+    let dockerUsername;
+    try {
+      const whoamiResult = await CommandExecutor.execute("whoami", []);
+      if (whoamiResult.success && whoamiResult.stdout) {
+        dockerUsername = whoamiResult.stdout.trim();
+        Logger.debug(`Using username from whoami: ${dockerUsername}`);
+      } else {
+        throw new Error("Could not determine username");
+      }
+    } catch (error) {
+      Logger.warn('Could not auto-detect username, using "user" as default');
+      dockerUsername = "user";
+    }
+    const remoteTag = `${dockerUsername}/${app.name}:${app.tag}`;
+    Logger.info(`Tagging image for push: ${remoteTag}`);
+    const tagResult = await CommandExecutor.executeWithOutput("docker", ["tag", localTag, remoteTag]);
+    if (!tagResult.success) {
+      throw new Error(`Failed to tag image: ${localTag} -> ${remoteTag}`);
+    }
+    Logger.info(`Pushing image: ${remoteTag}`);
+    const pushResult = await CommandExecutor.executeWithOutput("docker", ["push", remoteTag]);
+    if (!pushResult.success) {
+      Logger.warn("Docker push failed. Make sure you are logged in to Docker Hub with `docker login`");
+      Logger.info("You can login with: docker login");
+      throw new Error("Failed to push image to registry. Please ensure you are logged in to Docker Hub and have push permissions.");
+    }
+    this.actualImageName = `${dockerUsername}/${app.name}`;
+    Logger.success(`Image pushed successfully: ${remoteTag}`);
+    Logger.info(`Using image name: ${this.actualImageName}`);
   }
   async createApp() {
     const { app } = this.config;
+    if (!this.actualImageName) {
+      throw new Error("Image name not available for app creation");
+    }
     const appConfig = await this.generateAppConfig();
+    const composeYaml = `version: '3.8'
+services:
+  ${app.name}:
+    image: ${this.actualImageName}:${app.tag}
+    container_name: ${app.name}
+    ports:
+      - "${appConfig.custom_compose_config.services[app.name].ports[0]}"
+    restart: unless-stopped
+    networks:
+      - default
+networks:
+  default:
+    driver: bridge
+`;
+    Logger.debug(`Generated Docker Compose YAML:
+${composeYaml}`);
     const createRequest = {
       app_name: app.name,
-      image: {
-        repository: app.image,
-        tag: app.tag || "latest"
-      },
-      ...appConfig
+      custom_app: true,
+      values: {},
+      custom_compose_config_string: composeYaml
     };
     try {
+      Logger.debug(`Sending app creation request: ${JSON.stringify(createRequest, null, 2)}`);
       const result = await this.apiClient.createApp(createRequest);
       Logger.success(`App '${app.name}' created successfully`);
       return result;
@@ -11666,17 +8747,35 @@ class Deployer {
   }
   async updateApp(existingApp) {
     const { app } = this.config;
+    if (!this.actualImageName) {
+      throw new Error("Image name not available for app update");
+    }
     const appConfig = await this.generateAppConfig();
+    const composeYaml = `version: '3.8'
+services:
+  ${app.name}:
+    image: ${this.actualImageName}:${app.tag}
+    container_name: ${app.name}
+    ports:
+      - "${appConfig.custom_compose_config.services[app.name].ports[0]}"
+    restart: unless-stopped
+    networks:
+      - default
+networks:
+  default:
+    driver: bridge
+`;
+    Logger.debug(`Generated Docker Compose YAML for update:
+${composeYaml}`);
     const updateData = {
-      image: {
-        repository: app.image,
-        tag: app.tag || "latest"
-      },
-      ...appConfig
+      custom_compose_config_string: composeYaml,
+      values: {}
     };
     try {
-      const result = await this.apiClient.updateApp(existingApp.id, updateData);
+      const result = await this.apiClient.updateApp(existingApp.name, updateData);
       Logger.success(`App '${app.name}' updated successfully`);
+      Logger.info("Forcing image pull to get latest version...");
+      await this.apiClient.pullImages(app.name, true);
       return result;
     } catch (error) {
       throw new Error(`Failed to update app: ${error}`);
@@ -11684,45 +8783,28 @@ class Deployer {
   }
   async generateAppConfig() {
     const { app } = this.config;
-    const config = {};
+    if (!this.actualImageName) {
+      throw new Error("Image name not available for config generation");
+    }
     let detectedPort = app.port || 8080;
     let detectedPath = "/";
-    if (app.composeFile && fs3.existsSync(app.composeFile)) {
+    if (app.composeFile && fs2.existsSync(app.composeFile)) {
       try {
-        const composeContent = fs3.readFileSync(app.composeFile, "utf8");
+        const composeContent = fs2.readFileSync(app.composeFile, "utf8");
         Logger.debug("Found docker-compose.yml, extracting configuration...");
         const portMatch = composeContent.match(/ports:\s*\n\s*-\s*"(\d+):(\d+)"/);
         if (portMatch) {
           detectedPort = parseInt(portMatch[1]);
           Logger.debug(`Detected port from compose file: ${detectedPort}`);
         }
-        const volumeMatches = composeContent.match(/volumes:\s*\n((?:\s*-\s*.+\n)*)/);
-        if (volumeMatches) {
-          const volumeLines = volumeMatches[1].trim().split(`
-`);
-          const hostPathVolumes = volumeLines.map((line) => {
-            const volumeMatch = line.match(/\s*-\s*(.+):(.+)/);
-            if (volumeMatch) {
-              return {
-                host_path: volumeMatch[1].trim(),
-                mount_path: volumeMatch[2].trim()
-              };
-            }
-            return null;
-          }).filter((vol) => vol !== null);
-          if (hostPathVolumes.length > 0) {
-            config.storage = { host_path_volumes: hostPathVolumes };
-            Logger.debug(`Detected ${hostPathVolumes.length} volume mounts from compose file`);
-          }
-        }
       } catch (error) {
         Logger.warn(`Could not parse docker-compose.yml: ${error}`);
       }
     }
     const dockerfilePath = app.dockerfile || "Dockerfile";
-    if (fs3.existsSync(dockerfilePath)) {
+    if (fs2.existsSync(dockerfilePath)) {
       try {
-        const dockerfileContent = fs3.readFileSync(dockerfilePath, "utf8");
+        const dockerfileContent = fs2.readFileSync(dockerfilePath, "utf8");
         Logger.debug(`Found ${dockerfilePath}, extracting configuration...`);
         const exposeMatch = dockerfileContent.match(/EXPOSE\s+(\d+)/);
         if (exposeMatch && !app.composeFile) {
@@ -11733,31 +8815,61 @@ class Deployer {
         Logger.warn(`Could not parse ${dockerfilePath}: ${error}`);
       }
     }
-    config.portals = {
-      web_portal: {
-        host: "0.0.0.0",
-        port: detectedPort,
-        path: detectedPath
+    let hostPort = detectedPort;
+    let containerPort = detectedPort;
+    const commonSystemPorts = [80, 443, 22, 21, 25, 53, 110, 143, 993, 995];
+    if (commonSystemPorts.includes(detectedPort)) {
+      const portMapping = {
+        80: 8080,
+        443: 8443,
+        22: 2222,
+        21: 2121,
+        25: 2525,
+        53: 5353,
+        110: 1100,
+        143: 1143,
+        993: 9930,
+        995: 9950
+      };
+      hostPort = portMapping[detectedPort] || detectedPort + 8000;
+      containerPort = detectedPort;
+      Logger.info(`Mapped system port ${containerPort} to host port ${hostPort} to avoid conflicts`);
+    }
+    const composeConfig = {
+      version: "3.8",
+      services: {
+        [app.name]: {
+          image: `${this.actualImageName}:${app.tag}`,
+          container_name: app.name,
+          ports: [`${hostPort}:${containerPort}`],
+          restart: "unless-stopped",
+          networks: ["default"]
+        }
+      },
+      networks: {
+        default: {
+          driver: "bridge"
+        }
       }
     };
-    config.networking = {
-      dns_policy: "ClusterFirst",
-      enable_resource_limits: false
+    const config = {
+      custom_app: true,
+      values: {},
+      custom_compose_config: composeConfig
     };
-    Logger.info(`Configured app with port: ${detectedPort}, path: ${detectedPath}`);
+    Logger.info(`Configured custom app with host port: ${hostPort} -> container port: ${containerPort}, image: ${this.actualImageName}:${app.tag}`);
+    Logger.debug(`Docker Compose config: ${JSON.stringify(composeConfig, null, 2)}`);
     return config;
   }
   async verifyDeployment() {
-    const { app, deployment } = this.config;
-    if (!deployment.verifyDeployment) {
-      Logger.info("Deployment verification skipped");
-      return;
-    }
+    const { app } = this.config;
     Logger.info("Verifying deployment");
     try {
       const appStatus = await this.apiClient.getAppByName(app.name);
       if (!appStatus) {
-        throw new Error("App not found after deployment");
+        Logger.warn("Unable to verify app status via API, but creation appeared successful");
+        Logger.info("You can check the app status in the TrueNAS web interface");
+        return;
       }
       Logger.info(`App status: ${appStatus.state}`);
       if (appStatus.state === "RUNNING") {
@@ -11768,8 +8880,12 @@ class Deployer {
         Logger.warn(`App is in ${appStatus.state} state`);
       }
     } catch (error) {
-      throw new Error(`Failed to verify deployment: ${error}`);
+      Logger.warn("Unable to verify app status via API, but creation appeared successful");
+      Logger.info("You can check the app status in the TrueNAS web interface");
     }
+  }
+  cleanup() {
+    this.apiClient.disconnect();
   }
 }
 

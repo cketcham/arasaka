@@ -1,7 +1,6 @@
 export interface ArasakaConfig {
   app: {
     name: string;
-    image: string;
     tag?: string;
     composeFile?: string;
     dockerfile?: string;
@@ -10,23 +9,6 @@ export interface ArasakaConfig {
   server: {
     host: string;
     user: string;
-    apiKey?: string;
-  };
-  deployment: {
-    rollback?: {
-      enabled: boolean;
-      keepVersions?: number;
-    };
-    cleanup?: {
-      enabled: boolean;
-      keepImages?: number;
-    };
-    verifyDeployment?: boolean;  // Whether to verify the app is running after deployment
+    apiKey: string;
   };
 }
-
-export interface DeploymentOptions {
-  config: string;
-  tag?: string;
-  dryRun?: boolean;
-} 
