@@ -10155,8 +10155,7 @@ class ConfigManager {
   static validateConfig(config) {
     const required = [
       "app.name",
-      "app.image",
-      "server.host"
+      "app.image"
     ];
     for (const field of required) {
       const value = this.getNestedValue(config, field);
@@ -10184,6 +10183,10 @@ class ConfigManager {
       Logger.debug("Auto-detected Dockerfile");
     }
     config.app.port = config.app.port || 8080;
+    if (!config.server.host) {
+      config.server.host = "arasaka";
+      Logger.debug("Using default host: arasaka");
+    }
     if (!config.server.user) {
       try {
         config.server.user = userInfo().username;

@@ -31,8 +31,7 @@ export class ConfigManager {
   private static validateConfig(config: ArasakaConfig): void {
     const required = [
       'app.name',
-      'app.image',
-      'server.host'
+      'app.image'
     ];
 
     for (const field of required) {
@@ -71,6 +70,12 @@ export class ConfigManager {
     
     // Set default port if not specified
     config.app.port = config.app.port || 8080;
+    
+    // Set default host to "arasaka" if not specified
+    if (!config.server.host) {
+      config.server.host = 'arasaka';
+      Logger.debug('Using default host: arasaka');
+    }
     
     // Set default user to current system user if not specified
     if (!config.server.user) {
