@@ -1,0 +1,36 @@
+{
+  "name": "arasaka",
+  "version": "1.0.0",
+  "description": "Command line tools for deploying to Arasaka server",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "arasaka": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "deployment",
+    "truenas",
+    "docker"
+  ],
+  "author": "cketcham",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.0.0",
+    "@types/node-fetch": "^2.6.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^14.0.0",
+    "js-yaml": "^4.1.0",
+    "node-fetch": "^3.3.2"
+  }
+}

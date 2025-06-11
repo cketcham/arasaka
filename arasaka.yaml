@@ -1,0 +1,30 @@
+# Arasaka Deployment Configuration
+# This file defines how your application should be deployed to the TrueNAS server
+
+app:
+  name: "my-web-app"
+  image: "my-web-app"
+  tag: "latest"  # Optional, defaults to 'latest'
+  
+  # Build configuration - you can specify either or both:
+  composeFile: "docker-compose.yml"  # Optional, auto-detected if exists
+  # dockerfile: "Dockerfile"         # Optional, auto-detected if exists
+  # dockerfile: "Dockerfile.prod"    # Use custom Dockerfile
+  
+  # port: 8080  # Optional, auto-detected from Dockerfile EXPOSE or compose ports
+
+server:
+  host: "arasaka"  # Default hostname, can be overridden with TRUENAS_HOST env var
+  user: "your-username"  # Optional, defaults to current system user
+  apiKey: "${TRUENAS_API_KEY}"  # Required for TrueNAS API access
+
+deployment:
+  verifyDeployment: true  # Verify app is running after deployment
+  
+  rollback:
+    enabled: true   # Enable automatic rollback on deployment failure
+    keepVersions: 3 # Number of previous versions to keep
+  
+  cleanup:
+    enabled: true   # Enable cleanup of old Docker images
+    keepImages: 3   # Number of image versions to keep 
