@@ -8,8 +8,8 @@
     "arasaka": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "ts-node src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "dev": "bun run src/index.ts",
     "start": "node dist/index.js"
   },
   "keywords": [
