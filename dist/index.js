@@ -8891,6 +8891,6 @@ ${composeYaml}`);
 
 // src/index.ts
 var program2 = new Command;
-program2.name("arasaka").description("Command line tools for deploying to Arasaka server").version("1.0.0");
+program2.name("arasaka").description("Command line tools for deploying to Arasaka server").version("1.0.1");
 program2.command("deploy").description("Deploy application to TrueNAS server").option("-c, --config <file>", "Configuration file", "arasaka.yaml").option("-t, --tag <tag>", "Image tag", "latest").option("--dry-run", "Show what would be deployed without actually deploying").action(deployCommand);
 program2.parse();

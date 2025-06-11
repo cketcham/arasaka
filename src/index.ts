@@ -8,7 +8,7 @@ const program = new Command();
 program
   .name('arasaka')
   .description('Command line tools for deploying to Arasaka server')
-  .version('1.0.0');
+  .version('1.0.1');
 
 program
   .command('deploy')
