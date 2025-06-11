@@ -1,6 +1,6 @@
 {
   "name": "arasaka",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Command line tools for deploying to Arasaka server",
   "type": "module",
   "main": "dist/index.js",
